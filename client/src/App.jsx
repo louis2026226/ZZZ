@@ -4,6 +4,7 @@ import BLogin from './pages/BLogin.jsx'
 import CLogin from './pages/CLogin.jsx'
 import AdminRoom from './pages/AdminRoom.jsx'
 import PlayerRoom from './pages/PlayerRoom.jsx'
+import SuperAdminLogin from './pages/SuperAdminLogin.jsx'
 
 export default function App() {
   return (
@@ -14,10 +15,11 @@ export default function App() {
         <Route path="/login/c" element={<CLogin />} />
         <Route path="/b/dashboard" element={<AdminRoom />} />
         <Route path="/c/play" element={<PlayerRoom />} />
+        <Route path="/super-admin" element={<SuperAdminLogin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <div className="pointer-events-none fixed bottom-3 left-3 z-[60] text-[11px] font-medium text-zinc-400">
-        V1.0.38
+        V1.0.39
       </div>
     </>
   )
