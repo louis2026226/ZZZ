@@ -272,8 +272,13 @@ export default function AdminRoom() {
     )
   }
 
+  const boardClass =
+    'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
+  const canStart = isHost && !gameEnded && phase !== 'betting' && phase !== 'closed'
+  const showSettleBtn = isHost && !gameEnded && phase === 'closed' && !settleOpen
+
   return (
-    <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
+    <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
       <RoomCornerInfo
@@ -285,102 +290,112 @@ export default function AdminRoom() {
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
-        <MessageBoard messages={messages} />
+        <div className="relative">
+          <MessageBoard messages={messages} className={boardClass} />
+          {isHost && !gameEnded ? (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-end gap-2 p-2">
+              {canStart ? (
+                <button
+                  type="button"
+                  onClick={onStart}
+                  className="pointer-events-auto rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium shadow-lg hover:bg-amber-500"
+                >
+                  开始
+                </button>
+              ) : null}
+              {showSettleBtn ? (
+                <button
+                  type="button"
+                  onClick={() => setSettleOpen(true)}
+                  className="pointer-events-auto rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium shadow-lg hover:bg-amber-500"
+                >
+                  结算
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      {!gameEnded ? (
-        <div className="mb-4 space-y-4 border-b border-zinc-800 pb-4">
-          <p className="text-sm text-zinc-400">参与下注（与玩家相同规则）</p>
-          <div>
-            <p className="mb-2 text-xs text-zinc-500">选号（最多 2 个）</p>
-            <div className="flex flex-wrap gap-3">
-              {nums.map((n) => {
-                const on = selectedNums.includes(n)
-                const disabled = !betting
-                return (
-                  <button
-                    key={n}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => toggleNum(n)}
-                    className={`h-12 w-12 rounded-lg text-lg font-bold ${
-                      disabled
-                        ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                        : on
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-zinc-700 text-white hover:bg-zinc-600'
-                    }`}
-                  >
-                    {n}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          <div>
-            <p className="mb-2 text-xs text-zinc-500">随机米（点选其一，从小到大）</p>
-            <div className="flex flex-wrap gap-2">
-              {amounts.map((a) => (
+      <div className="flex flex-1 flex-col gap-6">
+        <div>
+          <p className="mb-2 text-sm text-zinc-400">选号（最多 2 个）</p>
+          <div className="flex flex-wrap gap-3">
+            {nums.map((n) => {
+              const on = selectedNums.includes(n)
+              const disabled = !betting
+              return (
                 <button
-                  key={a}
+                  key={n}
                   type="button"
-                  disabled={!betting}
-                  onClick={() => setPickedAmount(a)}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium ${
-                    !betting
+                  disabled={disabled}
+                  onClick={() => toggleNum(n)}
+                  className={`h-14 w-14 rounded-lg text-lg font-bold ${
+                    disabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                      : pickedAmount === a
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-zinc-700 hover:bg-zinc-600'
+                      : on
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-zinc-700 text-white hover:bg-zinc-600'
                   }`}
                 >
-                  {a}
+                  {n}
                 </button>
-              ))}
-            </div>
-          </div>
-          {betAlert ? <p className="text-sm text-red-400">{betAlert}</p> : null}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={!betting}
-              onClick={onBetConfirm}
-              className="min-w-0 flex-1 rounded-lg bg-amber-700 py-2 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-amber-600"
-            >
-              确定下注
-            </button>
-            <button
-              type="button"
-              disabled={!betting}
-              onClick={() => {
-                setPickedAmount(null)
-                refreshAmounts()
-              }}
-              className="shrink-0 rounded-lg border border-zinc-500 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              刷新
-            </button>
+              )
+            })}
           </div>
         </div>
-      ) : null}
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        {gameEnded ? (
-          <p className="text-lg text-amber-300">游戏结束</p>
-        ) : isHost ? (
+        <div>
+          <p className="mb-2 text-sm text-zinc-400">随机米（点选其一，从小到大）</p>
+          <div className="flex flex-wrap gap-2">
+            {amounts.map((a) => (
+              <button
+                key={a}
+                type="button"
+                disabled={!betting}
+                onClick={() => setPickedAmount(a)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                  !betting
+                    ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
+                    : pickedAmount === a
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-zinc-700 hover:bg-zinc-600'
+                }`}
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {betAlert ? <p className="text-sm text-red-400">{betAlert}</p> : null}
+
+        <div className="flex gap-2">
           <button
             type="button"
-            disabled={phase === 'betting' || phase === 'closed'}
-            onClick={onStart}
-            className="rounded-lg bg-amber-600 px-8 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-amber-500"
+            disabled={!betting}
+            onClick={onBetConfirm}
+            className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
-            开始
+            确定
           </button>
-        ) : null}
+          <button
+            type="button"
+            disabled={!betting}
+            onClick={() => {
+              setPickedAmount(null)
+              refreshAmounts()
+            }}
+            className="shrink-0 rounded-lg border border-zinc-500 px-3 py-3 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            刷新
+          </button>
+        </div>
 
-        {maxBetState ? (
-          <p className="text-xs text-zinc-500">单注上限：{maxBetState}</p>
-        ) : null}
+        <p className="text-xs text-zinc-500">
+          单注上限 {maxBetState || '-'}
+          {gameEnded ? ' · 游戏已结束' : ''}
+        </p>
       </div>
 
       {settleOpen && isHost ? (

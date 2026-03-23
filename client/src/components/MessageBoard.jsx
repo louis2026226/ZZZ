@@ -7,7 +7,7 @@ function lineClass(text) {
   return 'text-zinc-100'
 }
 
-export default function MessageBoard({ messages }) {
+export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
   const bottomRef = useRef(null)
   const scrollRef = useRef(null)
 
@@ -22,7 +22,7 @@ export default function MessageBoard({ messages }) {
   return (
     <div
       ref={scrollRef}
-      className="h-[40vh] w-full overflow-y-auto rounded-lg border border-zinc-600 bg-zinc-900/80 p-3 text-sm text-zinc-100"
+      className={`w-full overflow-y-auto rounded-lg border border-zinc-600 bg-zinc-900/80 p-3 text-sm text-zinc-100 ${className}`}
     >
       <ul className="space-y-1">
         {(messages || []).map((m, i) =>

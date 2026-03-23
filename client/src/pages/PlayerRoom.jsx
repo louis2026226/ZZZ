@@ -142,9 +142,11 @@ export default function PlayerRoom() {
   }
 
   const nums = useMemo(() => [1, 2, 3, 4], [])
+  const boardClass =
+    'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
 
   return (
-    <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
+    <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
       <RoomCornerInfo
@@ -158,7 +160,7 @@ export default function PlayerRoom() {
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
-        <MessageBoard messages={messages} />
+        <MessageBoard messages={messages} className={boardClass} />
       </div>
 
       <div className="flex flex-1 flex-col gap-6">
