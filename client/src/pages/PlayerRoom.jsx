@@ -255,6 +255,7 @@ export default function PlayerRoom() {
   const boardClass =
     'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
+  const selectedNumText = buildNumbersFromPick(numPick).join('')
 
   function onCopyRound(r) {
     const lines = [`第${r.round}局战绩`]
@@ -348,7 +349,7 @@ export default function PlayerRoom() {
             onClick={onConfirm}
             className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
-            确定
+            {selectedNumText ? `确定（${selectedNumText}）` : '确定'}
           </button>
           <button
             type="button"
