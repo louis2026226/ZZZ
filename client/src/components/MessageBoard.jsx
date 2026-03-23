@@ -14,6 +14,7 @@ function lineClass(text) {
   if (text.includes('【结算】') || text.includes('【本局统计】')) return 'text-amber-400'
   if (text.includes('【系统】玩家') && (text.includes('进入房间') || text.includes('离开房间')))
     return 'text-zinc-500'
+  if (text.includes('房主已离开房间')) return 'text-zinc-500'
   return 'text-zinc-100'
 }
 
