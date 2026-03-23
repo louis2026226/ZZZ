@@ -483,12 +483,12 @@ export default function AdminRoom() {
     'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
   const canStart =
     isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
-  const showSettleBtn = isHost && !gameEnded && phase === 'closed' && !settleOpen
+  const canAnnounce = isHost && !gameEnded && phase === 'closed'
+  const announceActive = canAnnounce && !settleOpen
 
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
-      <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton
         socketRef={socketRef}
         onStatsClick={() => setStatsOpen(true)}
@@ -502,22 +502,7 @@ export default function AdminRoom() {
       />
 
       <div className="mb-4 shrink-0">
-        <div className="relative">
-          <MessageBoard messages={messages} className={boardClass} />
-          {isHost && !gameEnded ? (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-end gap-2 p-2">
-              {showSettleBtn ? (
-                <button
-                  type="button"
-                  onClick={() => setSettleOpen(true)}
-                  className="pointer-events-auto rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium shadow-lg hover:bg-amber-500"
-                >
-                  结算
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
+        <MessageBoard messages={messages} className={boardClass} />
       </div>
 
       <div className="flex flex-1 flex-col gap-6">
@@ -573,6 +558,7 @@ export default function AdminRoom() {
 
         {betAlert ? <p className="text-sm text-red-400">{betAlert}</p> : null}
 
+        <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} inline />
         <div className="flex gap-2">
           {isHost && !gameEnded && canStart ? (
             <button
@@ -581,6 +567,20 @@ export default function AdminRoom() {
               className="shrink-0 rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
             >
               开始
+            </button>
+          ) : null}
+          {isHost && !gameEnded ? (
+            <button
+              type="button"
+              disabled={!announceActive}
+              onClick={() => setSettleOpen(true)}
+              className={`shrink-0 rounded-lg px-4 py-3 text-sm font-medium ${
+                announceActive
+                  ? 'bg-amber-500 text-white shadow-md hover:bg-amber-400'
+                  : 'cursor-not-allowed bg-zinc-800 text-zinc-500 opacity-70'
+              }`}
+            >
+              公布
             </button>
           ) : null}
           <button
