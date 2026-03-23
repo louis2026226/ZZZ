@@ -174,10 +174,25 @@ if (fs.existsSync(distPath)) {
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('index.html')) {
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+          res.setHeader('Pragma', 'no-cache')
+          return
+        }
+        const ext = path.extname(filePath)
+        if (ext === '.js' || ext === '.css' || ext === '.woff2' || ext === '.woff' || ext === '.ttf') {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
         }
       },
     })
   )
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
+    const clean = req.path.split('?')[0]
+    if (clean.startsWith('/assets/') && path.extname(clean)) {
+      res.status(404).type('text/plain').send('asset not found')
+      return
+    }
+    next()
+  })
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     if (req.path.startsWith('/socket.io')) return next()
@@ -185,6 +200,7 @@ if (fs.existsSync(distPath)) {
     const ext = path.extname(clean)
     if (ext) return next()
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+    res.setHeader('Pragma', 'no-cache')
     res.sendFile(path.join(distPath, 'index.html'), (err) => next(err))
   })
 } else {
