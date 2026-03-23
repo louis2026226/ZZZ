@@ -48,6 +48,7 @@ function makeRoom(adminUsername) {
     sockets: new Map(),
     playerBets: new Map(),
     messages: [],
+    emptyPlayerTimeout: null,
   }
   rooms.set(id, room)
   return room
@@ -92,6 +93,32 @@ function playerCount(room) {
     if (p.role === 'C') n++
   }
   return n
+}
+
+function clearEmptyPlayerTimeout(room) {
+  if (room.emptyPlayerTimeout) {
+    clearTimeout(room.emptyPlayerTimeout)
+    room.emptyPlayerTimeout = null
+  }
+}
+
+/** 房间内玩家（C）为 0 时，连续超过 1 分钟则关闭房间 */
+function syncEmptyPlayerDestroyTimer(room) {
+  if (!room || !rooms.has(String(room.id))) return
+  if (playerCount(room) > 0) {
+    clearEmptyPlayerTimeout(room)
+    return
+  }
+  if (room.emptyPlayerTimeout) return
+  room.emptyPlayerTimeout = setTimeout(() => {
+    room.emptyPlayerTimeout = null
+    const r = getRoom(room.id)
+    if (!r) return
+    if (playerCount(r) > 0) return
+    addMessage(r, '【系统】房间内无玩家超过 1 分钟，房间已关闭。')
+    broadcastRoom(r, 'messages', { list: r.messages })
+    dismissRoom(r)
+  }, 60000)
 }
 
 function roomStatsPayload(room) {
@@ -225,6 +252,7 @@ function listRoomsPayloadForAdmin(adminUsername) {
 
 function dismissRoom(room) {
   if (!room) return
+  clearEmptyPlayerTimeout(room)
   clearRoomTimers(room)
   const rid = room.id
   const key = roomKey(rid)
@@ -326,6 +354,7 @@ io.on('connection', (socket) => {
     room.currentRound = 0
     room.gameEnded = false
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
+    syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
       room: {
@@ -360,6 +389,7 @@ io.on('connection', (socket) => {
     socket.data.roomId = room.id
     socket.data.role = 'B'
     socket.emit('roomStats', roomStatsPayload(room))
+    syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
       room: {
@@ -389,6 +419,7 @@ io.on('connection', (socket) => {
     addMessage(room, `【系统】玩家 ${username} 进入房间。`)
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
       room: {
@@ -419,13 +450,17 @@ io.on('connection', (socket) => {
     const room = roomId ? getRoom(roomId) : null
     if (!room || (socket.data.role !== 'C' && socket.data.role !== 'B')) return
     if (room.phase !== 'betting') return
-    const nums = Array.isArray(numbers) ? numbers.map(Number).filter((n) => n >= 1 && n <= 4) : []
+    const raw = Array.isArray(numbers) ? numbers : []
+    const nums = raw.map(Number).filter((n) => n >= 1 && n <= 4)
+    if (nums.length !== raw.length) return
+    if (nums.length < 1 || nums.length > 3) return
     const uniq = [...new Set(nums)]
-    if (uniq.length === 0 || uniq.length > 2) return
+    if (uniq.length > 2) return
+    if (nums.length === 3 && uniq.length === 1) return
     const amt = Number(amount)
     if (!amt || amt < 10 || amt > room.maxBet || amt % 5 !== 0) return
-    room.playerBets.set(socket.id, { username, numbers: uniq, amount: amt })
-    const msg = `【下注】${username} | 选号 ${uniq.join(',')} | 金额 ${amt}`
+    room.playerBets.set(socket.id, { username, numbers: nums, amount: amt })
+    const msg = `【下注】${username} | 选号 ${nums.join('')} | 金额 ${amt}`
     addMessage(room, msg)
     broadcastRoom(room, 'messages', { list: room.messages })
   })
@@ -481,6 +516,7 @@ io.on('connection', (socket) => {
       broadcastRoom(room, 'messages', { list: room.messages })
     }
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    syncEmptyPlayerDestroyTimer(room)
   })
 })
 

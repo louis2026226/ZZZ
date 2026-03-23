@@ -30,28 +30,71 @@ function randomMiLabel(amount, index, list) {
 
 const STATS_PREFIX = '【本局统计】'
 
-function buildPersonalRecords(messages, uname) {
-  if (!uname) return []
-  const records = []
+function emptyNumPick() {
+  return { 1: 0, 2: 0, 3: 0, 4: 0 }
+}
+
+function buildNumbersFromPick(pick) {
+  const out = []
+  for (const d of [1, 2, 3, 4]) {
+    const c = pick[d] ?? 0
+    for (let i = 0; i < c; i++) out.push(d)
+  }
+  return out
+}
+
+function validPickNums(nums) {
+  const len = nums.length
+  if (len < 1 || len > 3) return false
+  const u = new Set(nums)
+  if (u.size > 2) return false
+  if (len === 3 && u.size === 1) return false
+  return true
+}
+
+function buildRoundRecords(messages, myName) {
+  const rounds = []
+  const pendingBetNums = new Map()
   let round = 0
   for (const m of messages || []) {
     if (!m?.text || m.divider) continue
     const t = m.text
+    if (t.startsWith('【下注】')) {
+      const segs = t.replace('【下注】', '').split(' | ')
+      if (segs.length >= 3) {
+        const uname = segs[0]?.trim()
+        const numTxt = segs[1]?.replace('选号', '').trim()
+        if (uname && numTxt) pendingBetNums.set(uname, numTxt)
+      }
+      continue
+    }
     if (!t.startsWith(STATS_PREFIX)) continue
     round += 1
     const rest = t.slice(STATS_PREFIX.length)
     if (!rest.trim()) continue
+    const entries = []
+    let myDelta = 0
     for (const piece of rest.split('；')) {
       const segs = piece.trim().split(' | ')
-      if (segs.length < 3 || segs[0] !== uname) continue
+      if (segs.length < 3) continue
+      const uname = segs[0]
       const label = segs[1]
       const amt = Number(segs[2])
       if (label !== '赢' && label !== '输') continue
       const delta = label === '赢' ? amt : -amt
-      records.push({ round, label, amt, delta })
+      if (uname === myName) myDelta += delta
+      entries.push({
+        username: uname,
+        numbers: pendingBetNums.get(uname) || '-',
+        label,
+        amt,
+        delta,
+      })
     }
+    rounds.push({ round, entries, myDelta })
+    pendingBetNums.clear()
   }
-  return records
+  return rounds
 }
 
 function phaseLabel(phase) {
@@ -104,7 +147,7 @@ export default function AdminRoom() {
   const [timerTotal, setTimerTotal] = useState(30)
   const [settleOpen, setSettleOpen] = useState(false)
   const [err, setErr] = useState('')
-  const [selectedNums, setSelectedNums] = useState([])
+  const [numPick, setNumPick] = useState({ 1: 0, 2: 0, 3: 0, 4: 0 })
   const [pickedAmount, setPickedAmount] = useState(null)
   const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [betAlert, setBetAlert] = useState('')
@@ -112,14 +155,12 @@ export default function AdminRoom() {
   const hostUsernameRef = useRef('')
   const [statsOpen, setStatsOpen] = useState(false)
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
+  const [copiedTip, setCopiedTip] = useState('')
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
-  const personalRecords = useMemo(() => buildPersonalRecords(messages, bUsername), [messages, bUsername])
-  const personalTotal = useMemo(
-    () => personalRecords.reduce((s, r) => s + r.delta, 0),
-    [personalRecords]
-  )
+  const roundRecords = useMemo(() => buildRoundRecords(messages, bUsername), [messages, bUsername])
+  const myTotal = useMemo(() => roundRecords.reduce((s, r) => s + r.myDelta, 0), [roundRecords])
 
   const refreshAmounts = useCallback(() => {
     const cap = maxBetState > 0 ? maxBetState : maxBet
@@ -129,6 +170,11 @@ export default function AdminRoom() {
   useEffect(() => {
     hostUsernameRef.current = hostUsername
   }, [hostUsername])
+
+  useEffect(() => {
+    if (!inRoomId || !isHost || gameEnded || phase !== 'closed') return
+    setSettleOpen(true)
+  }, [inRoomId, isHost, gameEnded, phase, currentRound])
 
   useEffect(() => {
     if (!inRoomId) {
@@ -142,7 +188,7 @@ export default function AdminRoom() {
       setGameEnded(false)
       setTimerLeft(0)
       setSettleOpen(false)
-      setSelectedNums([])
+      setNumPick(emptyNumPick())
       setPickedAmount(null)
       setHostUsername('')
       setNextRoundLeft(0)
@@ -201,7 +247,7 @@ export default function AdminRoom() {
         setNextRoundLeft(0)
         setPhase('betting')
         setSettleOpen(false)
-        setSelectedNums([])
+        setNumPick(emptyNumPick())
         setPickedAmount(null)
         refreshAmounts()
       })
@@ -216,7 +262,7 @@ export default function AdminRoom() {
         setPhase('idle')
         if (p?.currentRound != null) setCurrentRound(p.currentRound)
         if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
-        setSelectedNums([])
+        setNumPick(emptyNumPick())
         setPickedAmount(null)
       })
       s.on('gameOver', () => {
@@ -225,6 +271,14 @@ export default function AdminRoom() {
         setSettleOpen(false)
       })
       s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
+      s.on('roomDismissed', ({ roomId }) => {
+        const sr = sessionStorage.getItem('bRoomId')
+        if (!sr || String(roomId) !== String(sr)) return
+        sessionStorage.removeItem('bRoomId')
+        setInRoomId('')
+        setSettleOpen(false)
+        setErr('房间已关闭')
+      })
     } else {
       setListErr('')
       s.emit('b_list_my_rooms', { username: bUser }, (res) => {
@@ -313,18 +367,26 @@ export default function AdminRoom() {
 
   function toggleNum(n) {
     if (!betting) return
-    setSelectedNums((prev) => {
-      if (prev.includes(n)) return prev.filter((x) => x !== n)
-      if (prev.length >= 2) return prev
-      return [...prev, n]
+    setNumPick((prev) => {
+      const cur = prev[n] ?? 0
+      const next = (cur + 1) % 3
+      const p = { ...prev, [n]: next }
+      const nums = buildNumbersFromPick(p)
+      if (next > cur && !validPickNums(nums)) return prev
+      return p
     })
   }
 
   function onBetConfirm() {
     setBetAlert('')
     if (!betting) return
-    if (selectedNums.length === 0) {
+    const nums = buildNumbersFromPick(numPick)
+    if (nums.length === 0) {
       setBetAlert('请至少选择 1 个数字')
+      return
+    }
+    if (!validPickNums(nums)) {
+      setBetAlert('选号不符合规则')
       return
     }
     if (pickedAmount == null) {
@@ -337,10 +399,10 @@ export default function AdminRoom() {
     }
     socketRef.current?.emit('c_submit_bet', {
       username: bUsername,
-      numbers: selectedNums,
+      numbers: nums,
       amount: pickedAmount,
     })
-    setSelectedNums([])
+    setNumPick(emptyNumPick())
     setPickedAmount(null)
   }
 
@@ -524,8 +586,17 @@ export default function AdminRoom() {
     'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
   const canStart =
     isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
-  const canAnnounce = isHost && !gameEnded && phase === 'closed'
-  const announceActive = canAnnounce && !settleOpen
+  const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
+
+  function onCopyRound(r) {
+    const lines = [`第${r.round}局战绩`]
+    for (const e of r.entries) {
+      lines.push(`${e.username} ${e.numbers} ${e.label}${e.amt}`)
+    }
+    const txt = lines.join('\n')
+    setCopiedTip(`第${r.round}局战绩已复制，可以粘贴到其他聊天文本上。`)
+    if (navigator?.clipboard?.writeText) navigator.clipboard.writeText(txt).catch(() => {})
+  }
 
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
@@ -548,10 +619,12 @@ export default function AdminRoom() {
 
       <div className="flex flex-1 flex-col gap-6">
         <div>
-          <p className="mb-2 text-sm text-zinc-400">选号（最多 2 个）</p>
+          <p className="mb-2 text-sm text-zinc-400">
+            选号：点绿 1 次、再点黄 2 次、再点取消。3 位时只允许两种数字（如 112/221），不允许 111/222/333/444，也不允许 123/124/134
+          </p>
           <div className="flex flex-wrap gap-3">
             {nums.map((n) => {
-              const on = selectedNums.includes(n)
+              const c = numPick[n] ?? 0
               const disabled = !betting
               return (
                 <button
@@ -562,9 +635,11 @@ export default function AdminRoom() {
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
                     disabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                      : on
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                      : c === 2
+                        ? 'bg-amber-400 text-zinc-900'
+                        : c === 1
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-zinc-700 text-white hover:bg-zinc-600'
                   }`}
                 >
                   {n}
@@ -609,20 +684,6 @@ export default function AdminRoom() {
                 className="rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
               >
                 开始
-              </button>
-            ) : null}
-            {isHost && !gameEnded ? (
-              <button
-                type="button"
-                disabled={!announceActive}
-                onClick={() => setSettleOpen(true)}
-                className={`rounded-lg px-4 py-3 text-sm font-medium ${
-                  announceActive
-                    ? 'bg-amber-500 text-white shadow-md hover:bg-amber-400'
-                    : 'cursor-not-allowed bg-zinc-800 text-zinc-500 opacity-70'
-                }`}
-              >
-                公布
               </button>
             ) : null}
             {isHost && gameEnded ? (
@@ -679,16 +740,6 @@ export default function AdminRoom() {
               ))}
             </div>
             {err ? <p className="text-sm text-red-400">{err}</p> : null}
-            <button
-              type="button"
-              className="w-full rounded-lg border border-zinc-600 py-2"
-              onClick={() => {
-                setSettleOpen(false)
-                setErr('')
-              }}
-            >
-              取消
-            </button>
           </div>
         </div>
       ) : null}
@@ -702,31 +753,43 @@ export default function AdminRoom() {
             className="max-h-[75dvh] w-full max-w-sm overflow-y-auto rounded-xl border border-zinc-600 bg-zinc-900 p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="mb-3 text-lg font-semibold">我的战绩</h3>
-            {personalRecords.length === 0 ? (
+            <h3 className="mb-3 text-lg font-semibold">战绩</h3>
+            {roundRecords.length === 0 ? (
               <p className="text-sm text-zinc-400">暂无下注结算记录</p>
             ) : (
               <ul className="space-y-3 text-sm">
-                {personalRecords.map((r, i) => (
-                  <li key={`${r.round}-${i}`} className="rounded-lg bg-zinc-800/80 px-3 py-2">
-                    <div className="flex justify-between gap-2">
-                      <span className="text-zinc-400">第 {r.round} 局</span>
-                      <span>{r.label}</span>
-                    </div>
-                    <div className="mt-1 flex justify-between gap-2 text-zinc-300">
-                      <span>下注 {r.amt}</span>
-                      <span className={r.delta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                        本局 {r.delta >= 0 ? '+' : ''}
-                        {r.delta}
-                      </span>
+                {roundRecords.map((r) => (
+                  <li
+                    key={r.round}
+                    onClick={() => onCopyRound(r)}
+                    className={`rounded-lg px-3 py-2 ${
+                      r.round === latestRound
+                        ? 'border border-emerald-500 bg-zinc-800/80'
+                        : 'border border-zinc-700 bg-zinc-800/80'
+                    }`}
+                  >
+                    <div className="mb-1 text-zinc-300">第 {r.round} 局</div>
+                    <div className="space-y-1">
+                      {r.entries.map((e, idx) => (
+                        <div key={`${r.round}-${idx}`} className="flex items-center justify-between gap-2">
+                          <span className="text-zinc-300">
+                            {e.username} · {e.numbers}
+                          </span>
+                          <span className={e.delta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                            {e.label}
+                            {e.amt}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </li>
                 ))}
               </ul>
             )}
+            {copiedTip ? <p className="mt-3 text-sm text-emerald-400">{copiedTip}</p> : null}
             <p className="mt-4 text-base font-semibold">
-              总输赢 {personalTotal >= 0 ? '+' : ''}
-              {personalTotal}
+              我的输赢 {myTotal >= 0 ? '+' : ''}
+              {myTotal}
             </p>
             <button
               type="button"
