@@ -29,6 +29,8 @@ export default function PlayerRoom() {
   const [alertText, setAlertText] = useState('')
   const [joinErr, setJoinErr] = useState('')
   const [playerCount, setPlayerCount] = useState(0)
+  const [currentRound, setCurrentRound] = useState(0)
+  const [totalRoundsState, setTotalRoundsState] = useState(0)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -58,6 +60,8 @@ export default function PlayerRoom() {
       setRoomId(res.room.id)
       setMessages(res.room.messages || [])
       setMaxBet(res.room.maxBet || 0)
+      if (res.room.currentRound != null) setCurrentRound(res.room.currentRound)
+      if (res.room.totalRounds != null) setTotalRoundsState(res.room.totalRounds)
       if (res.room.phase) setPhase(res.room.phase)
       if (res.room.gameEnded) setGameEnded(true)
     })
@@ -65,6 +69,8 @@ export default function PlayerRoom() {
     s.on('messages', ({ list }) => setMessages(list || []))
     s.on('roomStats', (st) => {
       if (st?.playerCount != null) setPlayerCount(st.playerCount)
+      if (st?.currentRound != null) setCurrentRound(st.currentRound)
+      if (st?.totalRounds != null) setTotalRoundsState(st.totalRounds)
     })
     s.on('gameStart', () => {
       setPhase('betting')
@@ -80,10 +86,12 @@ export default function PlayerRoom() {
       setPhase('closed')
       setTimerLeft(0)
     })
-    s.on('newRoundWait', () => {
+    s.on('newRoundWait', (p) => {
       setPhase('idle')
       setSelectedNums([])
       setPickedAmount(null)
+      if (p?.currentRound != null) setCurrentRound(p.currentRound)
+      if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
     })
     s.on('gameOver', () => {
       setGameEnded(true)
@@ -139,7 +147,12 @@ export default function PlayerRoom() {
     <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
-      <RoomCornerInfo roomId={roomId} playerCount={playerCount} />
+      <RoomCornerInfo
+        roomId={roomId}
+        playerCount={playerCount}
+        currentRound={currentRound}
+        totalRounds={totalRoundsState}
+      />
 
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 

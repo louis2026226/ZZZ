@@ -276,21 +276,16 @@ export default function AdminRoom() {
     <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
-      <RoomCornerInfo roomId={roomId} playerCount={playerCount} />
+      <RoomCornerInfo
+        roomId={roomId}
+        playerCount={playerCount}
+        currentRound={currentRound}
+        totalRounds={totalRoundsState}
+      />
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
-        <div className="flex items-stretch gap-3">
-          <div className="min-h-0 min-w-0 flex-1">
-            <MessageBoard messages={messages} />
-          </div>
-          <div className="flex w-[4.5rem] shrink-0 flex-col justify-end text-right text-[10px] text-zinc-500">
-            <div>局数</div>
-            <div className="text-base font-bold leading-tight text-amber-400">
-              {currentRound}/{totalRoundsState || '-'}
-            </div>
-          </div>
-        </div>
+        <MessageBoard messages={messages} />
       </div>
 
       {!gameEnded ? (
