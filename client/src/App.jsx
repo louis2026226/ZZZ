@@ -7,13 +7,18 @@ import PlayerRoom from './pages/PlayerRoom.jsx'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login/b" element={<BLogin />} />
-      <Route path="/login/c" element={<CLogin />} />
-      <Route path="/b/dashboard" element={<AdminRoom />} />
-      <Route path="/c/play" element={<PlayerRoom />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login/b" element={<BLogin />} />
+        <Route path="/login/c" element={<CLogin />} />
+        <Route path="/b/dashboard" element={<AdminRoom />} />
+        <Route path="/c/play" element={<PlayerRoom />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <div className="pointer-events-none fixed bottom-3 left-3 z-40 text-[10px] text-zinc-600">
+        V1.0.1
+      </div>
+    </>
   )
 }
