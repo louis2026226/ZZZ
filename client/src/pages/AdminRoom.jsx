@@ -268,7 +268,15 @@ export default function AdminRoom() {
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
-        <MessageBoard messages={messages} />
+        <div className="relative w-full">
+          <MessageBoard messages={messages} />
+          <div className="pointer-events-none absolute bottom-2 right-2 z-10 text-right text-[10px] leading-tight text-zinc-500">
+            <div>局数</div>
+            <div className="text-sm font-bold text-amber-400">
+              {currentRound}/{totalRoundsState || '-'}
+            </div>
+          </div>
+        </div>
       </div>
 
       {!gameEnded ? (
@@ -335,13 +343,6 @@ export default function AdminRoom() {
       ) : null}
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-amber-500/60 bg-zinc-900 px-4 py-3 text-center">
-          <div className="text-xs text-zinc-400">局数</div>
-          <div className="text-lg font-bold text-amber-400">
-            {currentRound}/{totalRoundsState || '-'}
-          </div>
-        </div>
-
         {gameEnded ? (
           <p className="text-lg text-amber-300">游戏结束</p>
         ) : (
