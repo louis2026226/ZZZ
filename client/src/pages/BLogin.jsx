@@ -25,9 +25,13 @@ export default function BLogin() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center bg-zinc-950 p-6 text-white">
+    <div
+      className="flex min-h-full items-center justify-center bg-zinc-950 p-6 text-white"
+      onClick={() => nav('/')}
+    >
       <form
         onSubmit={onSubmit}
+        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-700 bg-zinc-900 p-6"
       >
         <h2 className="text-lg font-semibold">B 端登录</h2>

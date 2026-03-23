@@ -95,6 +95,10 @@ function playerCount(room) {
   return n
 }
 
+function socketCount(room) {
+  return room?.sockets?.size || 0
+}
+
 function clearEmptyPlayerTimeout(room) {
   if (room.emptyPlayerTimeout) {
     clearTimeout(room.emptyPlayerTimeout)
@@ -102,10 +106,10 @@ function clearEmptyPlayerTimeout(room) {
   }
 }
 
-/** 房间内玩家（C）为 0 时，连续超过 1 分钟则关闭房间 */
+/** 房间内无人（B+C=0）时，连续超过 1 分钟则关闭房间 */
 function syncEmptyPlayerDestroyTimer(room) {
   if (!room || !rooms.has(String(room.id))) return
-  if (playerCount(room) > 0) {
+  if (socketCount(room) > 0) {
     clearEmptyPlayerTimeout(room)
     return
   }
@@ -114,8 +118,8 @@ function syncEmptyPlayerDestroyTimer(room) {
     room.emptyPlayerTimeout = null
     const r = getRoom(room.id)
     if (!r) return
-    if (playerCount(r) > 0) return
-    addMessage(r, '【系统】房间内无玩家超过 1 分钟，房间已关闭。')
+    if (socketCount(r) > 0) return
+    addMessage(r, '【系统】房间内无人超过 1 分钟，房间已关闭。')
     broadcastRoom(r, 'messages', { list: r.messages })
     dismissRoom(r)
   }, 60000)
