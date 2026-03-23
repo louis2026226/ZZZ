@@ -65,16 +65,22 @@ function phaseLabel(phase) {
   return m[phase] || phase || '-'
 }
 
-function lobbyRoomCardClass(r) {
-  const base =
-    'relative flex w-full flex-col items-start rounded-xl bg-zinc-900 p-4 text-left shadow transition-colors hover:bg-zinc-800'
+function lobbyRoomCardClass() {
+  return 'relative flex w-full flex-col items-start rounded-xl border border-zinc-600 bg-zinc-900 p-4 text-left shadow transition-colors hover:border-amber-600/60 hover:bg-zinc-800'
+}
+
+/** 灰未开局 · 绿进行中 · 橙待公布 · 红待解散 */
+function lobbyRoomDotClass(r) {
   if (r.gameEnded || r.phase === 'ended') {
-    return `${base} border border-transparent animate-lobby-ring-red`
+    return 'bg-red-500 shadow-[0_0_6px_rgb(239,68,68)]'
   }
   if (r.phase === 'closed') {
-    return `${base} border border-transparent animate-lobby-ring-amber`
+    return 'bg-amber-500 shadow-[0_0_6px_rgb(245,158,11)]'
   }
-  return `${base} border border-zinc-600 hover:border-amber-600/60`
+  if ((r.currentRound ?? 0) === 0 && r.phase === 'idle') {
+    return 'bg-zinc-500'
+  }
+  return 'bg-emerald-500 shadow-[0_0_6px_rgb(52,211,153)]'
 }
 
 export default function AdminRoom() {
@@ -371,39 +377,58 @@ export default function AdminRoom() {
           </div>
         ) : (
           <div className="px-3 pb-8 pt-14 sm:px-4">
-            <h1 className="mb-1 text-xl font-semibold">{bUsername || '房主'}的房间</h1>
-            <p className="mb-4 text-sm text-zinc-400">
-              已创建 {myRooms.length} / 10 个
-              {!canCreateMore ? '（已达上限）' : ''}
-            </p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h1 className="mb-1 text-xl font-semibold">{bUsername || '房主'}的房间</h1>
+                <p className="text-sm text-zinc-400">
+                  已创建 {myRooms.length} / 10 个
+                  {!canCreateMore ? '（已达上限）' : ''}
+                </p>
+              </div>
+              <div
+                className="flex shrink-0 flex-col items-end gap-1 text-[10px] leading-tight text-zinc-400"
+                aria-label="房间状态说明"
+              >
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-500" />
+                  未开局
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                  进行中
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                  待公布
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                  待解散
+                </span>
+              </div>
+            </div>
             {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
             <div className="grid grid-cols-2 gap-3">
-              {myRooms.map((r) => {
-                const live =
-                  !r.gameEnded && r.phase !== 'closed' && r.phase !== 'ended'
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => enterRoom(r.id)}
-                    className={lobbyRoomCardClass(r)}
-                  >
-                    {live ? (
-                      <span
-                        className="absolute right-3 top-3 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_6px_rgb(52,211,153)]"
-                        aria-hidden
-                      />
-                    ) : null}
-                    <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
-                    <span className="mt-2 text-xs text-zinc-400">
-                      {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
-                    </span>
-                    <span className="mt-1 text-xs text-zinc-500">
-                      {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
-                    </span>
-                  </button>
-                )
-              })}
+              {myRooms.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => enterRoom(r.id)}
+                  className={lobbyRoomCardClass()}
+                >
+                  <span
+                    className={`absolute right-3 top-3 h-2.5 w-2.5 shrink-0 rounded-full ${lobbyRoomDotClass(r)}`}
+                    aria-hidden
+                  />
+                  <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
+                  <span className="mt-2 text-xs text-zinc-400">
+                    {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
+                  </span>
+                  <span className="mt-1 text-xs text-zinc-500">
+                    {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+                  </span>
+                </button>
+              ))}
             </div>
             <button
               type="button"
