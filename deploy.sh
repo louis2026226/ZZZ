@@ -12,11 +12,11 @@ if [ -d "$ROOT/.git" ]; then
 fi
 
 cd "$ROOT/client"
-npm install
+if [ -f package-lock.json ]; then npm ci; else npm install; fi
 npm run build
 
 cd "$ROOT/server"
-npm install
+if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
 
 cd "$ROOT"
 if pm2 describe room-game >/dev/null 2>&1; then

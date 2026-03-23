@@ -1,0 +1,14 @@
+【GitHub 仓库 → Settings → Secrets and variables → Actions → New repository secret】
+
+DEPLOY_HOST        例：8.134.168.87
+DEPLOY_USER        例：root
+DEPLOY_PATH        例：/root/louis-zz
+DEPLOY_SSH_KEY     私钥全文（BEGIN 到 END 整段）
+
+【服务器上做一次】用专门给 GitHub 用的密钥（勿用你的个人私钥）：
+ssh-keygen -t ed25519 -f /root/.ssh/github_actions -N ""
+cat /root/.ssh/github_actions.pub >> /root/.ssh/authorized_keys
+cat /root/.ssh/github_actions
+最后一行输出的私钥整段复制进 DEPLOY_SSH_KEY
+
+【安全组】放行 SSH 22（至少要让 GitHub 能连上；公网 22 有风险可日后改跳板）
