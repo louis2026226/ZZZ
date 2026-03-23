@@ -61,6 +61,11 @@ function addMessage(room, text) {
   if (room.messages.length > 200) room.messages.shift()
 }
 
+function addMessageDivider(room) {
+  room.messages.push({ t: Date.now(), divider: true })
+  if (room.messages.length > 200) room.messages.shift()
+}
+
 function broadcastRoom(room, event, payload) {
   io.to(roomKey(room.id)).emit(event, payload)
 }
@@ -122,6 +127,7 @@ function settleRound(room, drawNumber) {
   } else {
     addMessage(room, `【本局统计】${lines.join('；')}`)
   }
+  addMessageDivider(room)
   broadcastRoom(room, 'messages', { list: room.messages })
   broadcastRoom(room, 'roundResult', { drawNumber: num, lines })
 

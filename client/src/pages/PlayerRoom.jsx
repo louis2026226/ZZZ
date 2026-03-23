@@ -10,7 +10,7 @@ function pickRandomAmounts() {
   const pool = []
   for (let i = 5; i <= 200; i += 5) pool.push(i)
   const shuffled = pool.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, 10)
+  return shuffled.slice(0, 10).sort((a, b) => a - b)
 }
 
 export default function PlayerRoom() {
@@ -177,7 +177,7 @@ export default function PlayerRoom() {
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-zinc-400">随机金额（点选其一）</p>
+          <p className="mb-2 text-sm text-zinc-400">随机米（点选其一，从小到大）</p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a) => (
               <button
@@ -201,14 +201,27 @@ export default function PlayerRoom() {
 
         {alertText ? <p className="text-sm text-red-400">{alertText}</p> : null}
 
-        <button
-          type="button"
-          disabled={!betting}
-          onClick={onConfirm}
-          className="rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
-        >
-          确定
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={!betting}
+            onClick={onConfirm}
+            className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
+          >
+            确定
+          </button>
+          <button
+            type="button"
+            disabled={!betting}
+            onClick={() => {
+              setPickedAmount(null)
+              refreshAmounts()
+            }}
+            className="shrink-0 rounded-lg border border-zinc-500 px-3 py-3 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            刷新
+          </button>
+        </div>
 
         <p className="text-xs text-zinc-500">
           单注上限 {maxBet || '-'}
