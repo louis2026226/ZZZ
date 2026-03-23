@@ -1,7 +1,9 @@
 name: Deploy self-host (SSH)
 
-# 未配齐 DEPLOY_* Secret 时勿在 push 上跑，避免仓库一直红叉。只用 Railway 时不用管本 workflow。
+# 默认不跑（不设变量即可）。仅在你用阿里云 ECS + 已配齐 DEPLOY_* Secret 时打开。
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -10,6 +12,7 @@ concurrency:
 
 jobs:
   deploy:
+    if: ${{ vars.DEPLOY_SSH_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

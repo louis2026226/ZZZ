@@ -1,0 +1,17 @@
+你要的效果：改代码 → push 到 GitHub main → 等构建结束 → 刷新网页看到新版。
+
+【Railway】
+1. Railway 项目已绑定 GitHub 仓库 + 分支 main。
+2. 每次 push 到 main，Railway 会自动重新构建、发布（约 1～3 分钟）。
+3. 用 Railway 给的 https 域名打开，部署完成后 Ctrl+F5 强刷。
+4. GitHub 里不必为 Railway 配 Actions Secret（截图那个页面可空着）。
+
+【本机】
+- 助手改完会尽量 git commit；你需要能成功执行一次：git push origin main（凭据/PAT 配好后以后都省事）。
+- push 失败＝线上不会变，先解决登录 GitHub。
+
+【可选：同时自动更新阿里云 ECS】
+1. GitHub → Settings → Secrets → 配齐 DEPLOY_HOST / DEPLOY_USER / DEPLOY_PATH / DEPLOY_SSH_KEY。
+2. Settings → Variables → Actions → New repository variable：
+   Name: DEPLOY_SSH_ENABLED   Value: true
+3. 之后每次 push 会额外 SSH 跑 deploy.sh。
