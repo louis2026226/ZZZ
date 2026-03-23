@@ -149,6 +149,7 @@ export default function AdminRoom() {
   const [err, setErr] = useState('')
   const [numPick, setNumPick] = useState({ 1: 0, 2: 0, 3: 0, 4: 0 })
   const [pickedAmount, setPickedAmount] = useState(null)
+  const [customAmount, setCustomAmount] = useState('')
   const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [betAlert, setBetAlert] = useState('')
   const [hostUsername, setHostUsername] = useState('')
@@ -404,6 +405,25 @@ export default function AdminRoom() {
     })
     setNumPick(emptyNumPick())
     setPickedAmount(null)
+  }
+
+  function onCustomAmountConfirm() {
+    setBetAlert('')
+    if (!betting) return
+    const v = Number(customAmount)
+    if (!Number.isFinite(v) || v < 10) {
+      setBetAlert('自选金额需不小于 10')
+      return
+    }
+    if (v > maxBetState) {
+      setBetAlert(`金额超过单注上限（${maxBetState}）`)
+      return
+    }
+    if (v % 5 !== 0) {
+      setBetAlert('自选金额必须是 5 的倍数')
+      return
+    }
+    setPickedAmount(v)
   }
 
   if (!inRoomId) {
@@ -668,6 +688,26 @@ export default function AdminRoom() {
                 {randomMiLabel(a, idx, amounts)}
               </button>
             ))}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                disabled={!betting}
+                value={customAmount}
+                onChange={(e) => setCustomAmount(e.target.value.replace(/\D/g, ''))}
+                placeholder="自选"
+                className="w-20 rounded-lg border border-zinc-600 bg-zinc-800 px-2 py-2 text-sm text-white outline-none placeholder:text-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"
+              />
+              <button
+                type="button"
+                disabled={!betting}
+                onClick={onCustomAmountConfirm}
+                className="rounded-lg border border-zinc-500 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                设定
+              </button>
+            </div>
           </div>
         </div>
 
