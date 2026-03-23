@@ -290,7 +290,6 @@ export default function PlayerRoom() {
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
-      <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
       <RoomCornerInfo
         roomId={roomId}
@@ -380,6 +379,7 @@ export default function PlayerRoom() {
 
         {alertText ? <p className="text-sm text-red-400">{alertText}</p> : null}
 
+        <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} inline />
         <div className="flex gap-2">
           <button
             type="button"
