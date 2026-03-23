@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createSocket } from '../socket.js'
+import { createSocket, resolveMainSocketOrigin } from '../socket.js'
 
 function creds() {
   return {
@@ -23,16 +23,24 @@ export default function SuperAdmin() {
       return
     }
     setErr('')
-    const s = createSocket()
-    s.emit('super_admin_list_b', { suUser, suPass }, (res) => {
-      s.disconnect()
-      setLoading(false)
-      if (!res?.ok) {
-        setErr(res?.error || '加载失败')
-        return
+    ;(async () => {
+      try {
+        const origin = await resolveMainSocketOrigin()
+        const s = createSocket(origin)
+        s.emit('super_admin_list_b', { suUser, suPass }, (res) => {
+          s.disconnect()
+          setLoading(false)
+          if (!res?.ok) {
+            setErr(res?.error || '加载失败')
+            return
+          }
+          setList(res.list || [])
+        })
+      } catch {
+        setLoading(false)
+        setErr('无法连接服务')
       }
-      setList(res.list || [])
-    })
+    })()
   }, [nav])
 
   useEffect(() => {
@@ -45,19 +53,26 @@ export default function SuperAdmin() {
 
   function updateRow(targetUsername, patch) {
     const { suUser, suPass } = creds()
-    const s = createSocket()
-    s.emit(
-      'super_admin_update_b',
-      { suUser, suPass, targetUsername, ...patch },
-      (res) => {
-        s.disconnect()
-        if (!res?.ok) {
-          setErr(res?.error || '操作失败')
-          return
-        }
-        load()
+    ;(async () => {
+      try {
+        const origin = await resolveMainSocketOrigin()
+        const s = createSocket(origin)
+        s.emit(
+          'super_admin_update_b',
+          { suUser, suPass, targetUsername, ...patch },
+          (res) => {
+            s.disconnect()
+            if (!res?.ok) {
+              setErr(res?.error || '操作失败')
+              return
+            }
+            load()
+          }
+        )
+      } catch {
+        setErr('无法连接服务')
       }
-    )
+    })()
   }
 
   function logout() {
@@ -102,7 +117,7 @@ export default function SuperAdmin() {
                 <th className="p-2">状态</th>
                 <th className="p-2">授权</th>
                 <th className="p-2">已结算局数</th>
-                <th className="p-2">房主输赢</th>
+                <th className="p-2">房主累计</th>
                 <th className="p-2">去重 C 人数</th>
                 <th className="p-2">操作</th>
               </tr>
@@ -175,7 +190,7 @@ export default function SuperAdmin() {
                   {expanded === row.username ? (
                     <tr className="border-t border-zinc-800 bg-zinc-950">
                       <td colSpan={8} className="p-3 text-zinc-300">
-                        <div className="text-xs text-zinc-500">各 C 累计输赢（进入过该 B 房间）</div>
+                        <div className="text-xs text-zinc-500">各 C 累计（进入过该 B 房间）</div>
                         <ul className="mt-1 max-h-40 list-inside list-disc overflow-y-auto text-sm">
                           {(row.cRows || []).length === 0 ? (
                             <li>暂无</li>

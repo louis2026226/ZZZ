@@ -34,25 +34,35 @@ function emptyNumPick() {
   return { 1: 0, 2: 0, 3: 0, 4: 0, smile: 0 }
 }
 
-function buildNumbersFromPick(pick) {
+function buildDigitsFromPick(pick) {
   const out = []
-  for (const d of [1, 2, 3, 4, 'smile']) {
+  for (const d of [1, 2, 3, 4]) {
     const c = pick[d] ?? 0
     for (let i = 0; i < c; i++) out.push(d)
   }
   return out
 }
 
-function validPickNums(nums) {
-  const len = nums.length
-  if (len < 1 || len > 2) return false
-  const u = new Set(nums)
-  return u.size === len
+function digitSum14(pick) {
+  return [1, 2, 3, 4].reduce((s, d) => s + (pick[d] ?? 0), 0)
+}
+
+function unionKindsSize(usedDigitKinds, pick) {
+  const u = new Set(usedDigitKinds)
+  for (const d of [1, 2, 3, 4]) {
+    if ((pick[d] ?? 0) > 0) u.add(d)
+  }
+  return u.size
+}
+
+function validDigitPick(digits) {
+  const len = digits.length
+  return len >= 1 && len <= 2
 }
 
 function buildRoundRecords(messages, myName) {
   const rounds = []
-  const pendingBetNums = new Map()
+  const pendingQueues = new Map()
   let round = 0
   for (const m of messages || []) {
     if (!m?.text || m.divider) continue
@@ -62,7 +72,10 @@ function buildRoundRecords(messages, myName) {
       if (segs.length >= 3) {
         const uname = segs[0]?.trim()
         const numTxt = segs[1]?.replace('选号', '').trim()
-        if (uname && numTxt) pendingBetNums.set(uname, numTxt)
+        if (uname && numTxt) {
+          if (!pendingQueues.has(uname)) pendingQueues.set(uname, [])
+          pendingQueues.get(uname).push(numTxt)
+        }
       }
       continue
     }
@@ -78,19 +91,21 @@ function buildRoundRecords(messages, myName) {
       const uname = segs[0]
       const label = segs[1]
       const amt = Number(segs[2])
-      if (label !== '赢' && label !== '输') continue
-      const delta = label === '赢' ? amt : -amt
+      if (label !== '+' && label !== '-' && label !== '赢' && label !== '输') continue
+      const delta = label === '+' || label === '赢' ? amt : -amt
       if (uname === myName) myDelta += delta
+      const q = pendingQueues.get(uname)
+      const numLabel = q && q.length > 0 ? q.shift() : '-'
       entries.push({
         username: uname,
-        numbers: pendingBetNums.get(uname) || '-',
+        numbers: numLabel,
         label,
         amt,
         delta,
       })
     }
     rounds.push({ round, entries, myDelta })
-    pendingBetNums.clear()
+    pendingQueues.clear()
   }
   return rounds
 }
@@ -157,6 +172,7 @@ export default function AdminRoom() {
   const [statsOpen, setStatsOpen] = useState(false)
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
   const [copiedTip, setCopiedTip] = useState('')
+  const [roundUsedDigits, setRoundUsedDigits] = useState([])
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
@@ -258,6 +274,7 @@ export default function AdminRoom() {
         setPickedAmount(null)
         setCustomButtonAmount(null)
         setAmounts(pickRandomAmounts(betCapRef.current))
+        setRoundUsedDigits([])
       })
       s.on('roundClosed', () => {
         setPhase('closed')
@@ -390,12 +407,18 @@ export default function AdminRoom() {
 
   function toggleNum(n) {
     if (!betting) return
+    if (n === 'smile') {
+      setNumPick((prev) => ({ ...prev, smile: prev.smile > 0 ? 0 : 1 }))
+      return
+    }
     setNumPick((prev) => {
       const cur = prev[n] ?? 0
-      const next = cur > 0 ? 0 : 1
+      const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
-      const nums = buildNumbersFromPick(p)
-      if (next === 1 && !validPickNums(nums)) return prev
+      if (next > cur) {
+        if (digitSum14(p) > 2) return prev
+        if (unionKindsSize(roundUsedDigits, p) > 2) return prev
+      }
       return p
     })
   }
@@ -403,12 +426,12 @@ export default function AdminRoom() {
   function onBetConfirm() {
     setBetAlert('')
     if (!betting) return
-    const nums = buildNumbersFromPick(numPick)
-    if (nums.length === 0) {
+    const digits = buildDigitsFromPick(numPick)
+    if (digits.length === 0) {
       setBetAlert('请至少选择 1 个数字')
       return
     }
-    if (!validPickNums(nums)) {
+    if (!validDigitPick(digits)) {
       setBetAlert('选号不符合规则')
       return
     }
@@ -420,14 +443,26 @@ export default function AdminRoom() {
       setBetAlert(`金额超过单注上限（${maxBetState}）`)
       return
     }
-    socketRef.current?.emit('c_submit_bet', {
-      username: bUsername,
-      numbers: nums,
-      amount: pickedAmount,
-    })
-    setNumPick(emptyNumPick())
-    setPickedAmount(null)
-    setCustomAmount('')
+    const smileOn = (numPick.smile ?? 0) > 0
+    socketRef.current?.emit(
+      'c_submit_bet',
+      {
+        username: bUsername,
+        numbers: digits,
+        amount: pickedAmount,
+        showSmile: smileOn,
+      },
+      (res) => {
+        if (!res?.ok) {
+          setBetAlert(res?.error || '下注失败')
+          return
+        }
+        setRoundUsedDigits((prev) => [...new Set([...prev, ...digits])])
+        setNumPick(emptyNumPick())
+        setPickedAmount(null)
+        setCustomAmount('')
+      }
+    )
   }
 
   function onCustomAmountConfirm() {
@@ -651,7 +686,10 @@ export default function AdminRoom() {
   const canStart =
     isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
-  const selectedNumText = buildNumbersFromPick(numPick).join('')
+  const digitPick = buildDigitsFromPick(numPick)
+  const digitStr = digitPick.join('')
+  const selectedNumText =
+    digitStr === '' ? '-' : `${digitStr}${numPick.smile > 0 ? '🙂' : ''}`
 
   function onCopyRound(r) {
     const lines = [`第${r.round}局战绩`]
@@ -685,12 +723,26 @@ export default function AdminRoom() {
       <div className="flex flex-1 flex-col gap-6">
         <div>
           <p className="mb-2 text-sm text-zinc-400">
-            当前选号：<span className="text-amber-400">{selectedNumText || '-'}</span>
+            当前选号：<span className="text-amber-400">{selectedNumText}</span>
           </p>
           <div className="flex flex-wrap gap-3">
             {nums.map((item) => {
               const c = numPick[item.value] ?? 0
-              const disabled = !betting
+              const d = item.value
+              const maxDigitsReached = digitPick.length >= 2
+              let kindBlocked = false
+              if (d !== 'smile' && betting && c === 0 && !maxDigitsReached) {
+                const u = new Set(roundUsedDigits)
+                for (const k of [1, 2, 3, 4]) {
+                  if (k !== d && (numPick[k] ?? 0) > 0) u.add(k)
+                }
+                u.add(d)
+                kindBlocked = u.size > 2
+              }
+              const disabled =
+                d === 'smile'
+                  ? !betting
+                  : !betting || (maxDigitsReached && c === 0) || kindBlocked
               return (
                 <button
                   key={String(item.value)}
@@ -700,9 +752,11 @@ export default function AdminRoom() {
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
                     disabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                      : c === 1
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                      : c === 2
+                        ? 'bg-amber-400 text-zinc-900'
+                        : c === 1
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-zinc-700 text-white hover:bg-zinc-600'
                   }`}
                 >
                   {item.label}
@@ -828,15 +882,15 @@ export default function AdminRoom() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-600 bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold">选择开奖数字</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 'smile'].map((n) => (
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((n) => (
                 <button
-                  key={String(n)}
+                  key={n}
                   type="button"
                   onClick={() => onChooseDraw(n)}
                   className="rounded-lg bg-amber-600 py-4 text-xl font-bold hover:bg-amber-500"
                 >
-                  {n === 'smile' ? '🙂' : n}
+                  {n}
                 </button>
               ))}
             </div>
@@ -889,7 +943,7 @@ export default function AdminRoom() {
             )}
             {copiedTip ? <p className="mt-3 text-sm text-emerald-400">{copiedTip}</p> : null}
             <p className="mt-4 text-base font-semibold">
-              我的输赢 {myTotal >= 0 ? '+' : ''}
+              累计 {myTotal >= 0 ? '+' : ''}
               {myTotal}
             </p>
             <button

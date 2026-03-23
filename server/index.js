@@ -8,6 +8,16 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT) || 3000
+const _sap = process.env.SUPER_ADMIN_PORT
+let SUPER_ADMIN_PORT
+if (_sap === '0' || _sap === 'false') {
+  SUPER_ADMIN_PORT = null
+} else if (_sap != null && _sap !== '') {
+  const n = Number(_sap)
+  SUPER_ADMIN_PORT = Number.isFinite(n) && n > 0 ? n : 3390
+} else {
+  SUPER_ADMIN_PORT = 3390
+}
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin888'
 const SUPER_ADMIN_USER = 'admin'
 const SUPER_ADMIN_PASS = '123456'
@@ -18,6 +28,7 @@ app.use(cors({ origin: CLIENT_ORIGIN === '*' ? true : CLIENT_ORIGIN.split(','), 
 app.use(express.json())
 
 const httpServer = createServer(app)
+const httpServerAdmin = SUPER_ADMIN_PORT ? createServer(app) : null
 const io = new Server(httpServer, {
   cors: {
     origin: CLIENT_ORIGIN === '*' ? '*' : CLIENT_ORIGIN.split(','),
@@ -144,6 +155,20 @@ function resetRoundBets(room) {
   room.playerBets.clear()
 }
 
+function getSocketBetList(room, sid) {
+  const v = room.playerBets.get(sid)
+  if (v == null) return []
+  return Array.isArray(v) ? v : [v]
+}
+
+function digitKindsUsedBySocket(room, sid) {
+  const s = new Set()
+  for (const b of getSocketBetList(room, sid)) {
+    for (const d of b.numbers) s.add(d)
+  }
+  return s
+}
+
 function startBettingTimer(room) {
   clearRoomTimers(room)
   room.phase = 'betting'
@@ -184,24 +209,27 @@ function beginBettingRound(room, opts = {}) {
 }
 
 function settleRound(room, drawNumber) {
-  const num = normalizePickToken(drawNumber)
+  const num = normalizeLuckyNumber(drawNumber)
   if (num == null) return
-  addMessage(room, `【系统】房主公布幸运号：${pickTokenLabel(num)}`)
+  addMessage(room, `【系统】房主公布幸运号：${num}`)
   const owner = room.adminUsername
   ensureBStats(owner)
   const st = bStats.get(owner)
   st.totalRoundsSettled += 1
   const lines = []
-  for (const [sid, bet] of room.playerBets) {
-    const win = bet.numbers.includes(num)
-    const label = win ? '赢' : '输'
-    const amt = bet.amount
-    lines.push(`${bet.username} | ${label} | ${amt}`)
-    addMessage(room, `【结算】${bet.username} | ${label} | ${amt}`)
-    const delta = win ? amt : -amt
-    const prevPnl = st.cPnL.get(bet.username) || 0
-    st.cPnL.set(bet.username, prevPnl + delta)
-    if (bet.username === owner) st.selfPnL += delta
+  for (const [, betOrBets] of room.playerBets) {
+    const bets = Array.isArray(betOrBets) ? betOrBets : [betOrBets]
+    for (const bet of bets) {
+      const win = bet.numbers.includes(num)
+      const label = win ? '+' : '-'
+      const amt = bet.amount
+      lines.push(`${bet.username} | ${label} | ${amt}`)
+      addMessage(room, `【结算】${bet.username} | ${label} | ${amt}`)
+      const delta = win ? amt : -amt
+      const prevPnl = st.cPnL.get(bet.username) || 0
+      st.cPnL.set(bet.username, prevPnl + delta)
+      if (bet.username === owner) st.selfPnL += delta
+    }
   }
   if (lines.length === 0) {
     addMessage(room, '【结算】本局无人下注。')
@@ -314,18 +342,24 @@ function dismissRoom(room) {
   }
 }
 
-function normalizePickToken(v) {
-  if (v === 'smile' || v === '🙂') return 'smile'
+function normalizeLuckyNumber(v) {
   const n = Number(v)
   if (Number.isInteger(n) && n >= 1 && n <= 4) return n
   return null
 }
 
-function pickTokenLabel(v) {
-  return v === 'smile' ? '🙂' : String(v)
+function normalizeBetDigit(v) {
+  const n = Number(v)
+  if (Number.isInteger(n) && n >= 1 && n <= 4) return n
+  return null
 }
 
 app.get('/health', (_, res) => res.json({ ok: true }))
+
+app.get('/api/server-ports', (_, res) => {
+  res.setHeader('Cache-Control', 'no-store')
+  res.json({ mainPort: PORT, adminPort: SUPER_ADMIN_PORT })
+})
 
 const distPath = path.join(__dirname, '..', 'client', 'dist')
 if (fs.existsSync(distPath)) {
@@ -584,23 +618,53 @@ io.on('connection', (socket) => {
     beginBettingRound(room)
   })
 
-  socket.on('c_submit_bet', ({ username, numbers, amount }) => {
+  socket.on('c_submit_bet', ({ username, numbers, amount, showSmile }, cb) => {
+    const reply = typeof cb === 'function' ? cb : () => {}
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
-    if (!room || (socket.data.role !== 'C' && socket.data.role !== 'B')) return
-    if (room.phase !== 'betting') return
+    if (!room || (socket.data.role !== 'C' && socket.data.role !== 'B')) {
+      reply({ ok: false, error: '无权限' })
+      return
+    }
+    if (room.phase !== 'betting') {
+      reply({ ok: false, error: '当前不能下注' })
+      return
+    }
     const raw = Array.isArray(numbers) ? numbers : []
-    const nums = raw.map(normalizePickToken)
-    if (nums.some((x) => x == null)) return
-    if (nums.length < 1 || nums.length > 2) return
-    const uniq = [...new Set(nums)]
-    if (uniq.length !== nums.length) return
+    const digits = []
+    for (const x of raw) {
+      const d = normalizeBetDigit(x)
+      if (d != null) digits.push(d)
+    }
+    const smile =
+      Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
+    if (digits.length < 1 || digits.length > 2) {
+      reply({ ok: false, error: '选号无效' })
+      return
+    }
+    const used = digitKindsUsedBySocket(room, socket.id)
+    for (const d of digits) used.add(d)
+    if (used.size > 2) {
+      reply({ ok: false, error: '本局累计只能用两个不同数字' })
+      return
+    }
     const amt = Number(amount)
-    if (!amt || amt < 10 || amt > room.maxBet || amt % 5 !== 0) return
-    room.playerBets.set(socket.id, { username, numbers: uniq, amount: amt })
-    const msg = `【下注】${username} | 选号 ${uniq.map(pickTokenLabel).join('')} | 金额 ${amt}`
+    if (!amt || amt < 10 || amt > room.maxBet || amt % 5 !== 0) {
+      reply({ ok: false, error: '金额无效' })
+      return
+    }
+    const list = [...getSocketBetList(room, socket.id)]
+    list.push({
+      username,
+      numbers: digits,
+      amount: amt,
+      showSmile: smile,
+    })
+    room.playerBets.set(socket.id, list)
+    const msg = `【下注】${username} | 选号 ${digits.join('')}${smile ? '🙂' : ''} | 金额 ${amt}`
     addMessage(room, msg)
     broadcastRoom(room, 'messages', { list: room.messages })
+    reply({ ok: true })
   })
 
   socket.on('b_settle', ({ drawNumber }) => {
@@ -610,7 +674,7 @@ io.on('connection', (socket) => {
     const info = room.sockets.get(socket.id)
     if (!info || info.username !== room.adminUsername) return
     if (room.phase !== 'closed') return
-    const n = normalizePickToken(drawNumber)
+    const n = normalizeLuckyNumber(drawNumber)
     if (n == null) return
     clearRoomTimers(room)
     settleRound(room, n)
@@ -658,6 +722,14 @@ io.on('connection', (socket) => {
   })
 })
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on ${PORT}`)
 })
+if (httpServerAdmin && SUPER_ADMIN_PORT) {
+  httpServerAdmin.listen(SUPER_ADMIN_PORT, '0.0.0.0', () => {
+    console.log(`Super admin UI on ${SUPER_ADMIN_PORT} (Socket.IO → ${PORT})`)
+  })
+  httpServerAdmin.on('error', (err) => {
+    console.error('[room-game] Super admin port listen failed:', err.message)
+  })
+}

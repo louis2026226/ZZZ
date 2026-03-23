@@ -34,25 +34,35 @@ function emptyNumPick() {
   return { 1: 0, 2: 0, 3: 0, 4: 0, smile: 0 }
 }
 
-function buildNumbersFromPick(pick) {
+function buildDigitsFromPick(pick) {
   const out = []
-  for (const d of [1, 2, 3, 4, 'smile']) {
+  for (const d of [1, 2, 3, 4]) {
     const c = pick[d] ?? 0
     for (let i = 0; i < c; i++) out.push(d)
   }
   return out
 }
 
-function validPickNums(nums) {
-  const len = nums.length
-  if (len < 1 || len > 2) return false
-  const u = new Set(nums)
-  return u.size === len
+function digitSum14(pick) {
+  return [1, 2, 3, 4].reduce((s, d) => s + (pick[d] ?? 0), 0)
+}
+
+function unionKindsSize(usedDigitKinds, pick) {
+  const u = new Set(usedDigitKinds)
+  for (const d of [1, 2, 3, 4]) {
+    if ((pick[d] ?? 0) > 0) u.add(d)
+  }
+  return u.size
+}
+
+function validDigitPick(digits) {
+  const len = digits.length
+  return len >= 1 && len <= 2
 }
 
 function buildRoundRecords(messages, myName) {
   const rounds = []
-  const pendingBetNums = new Map()
+  const pendingQueues = new Map()
   let round = 0
   for (const m of messages || []) {
     if (!m?.text || m.divider) continue
@@ -62,7 +72,10 @@ function buildRoundRecords(messages, myName) {
       if (segs.length >= 3) {
         const uname = segs[0]?.trim()
         const numTxt = segs[1]?.replace('选号', '').trim()
-        if (uname && numTxt) pendingBetNums.set(uname, numTxt)
+        if (uname && numTxt) {
+          if (!pendingQueues.has(uname)) pendingQueues.set(uname, [])
+          pendingQueues.get(uname).push(numTxt)
+        }
       }
       continue
     }
@@ -78,19 +91,21 @@ function buildRoundRecords(messages, myName) {
       const uname = segs[0]
       const label = segs[1]
       const amt = Number(segs[2])
-      if (label !== '赢' && label !== '输') continue
-      const delta = label === '赢' ? amt : -amt
+      if (label !== '+' && label !== '-' && label !== '赢' && label !== '输') continue
+      const delta = label === '+' || label === '赢' ? amt : -amt
       if (uname === myName) myDelta += delta
+      const q = pendingQueues.get(uname)
+      const numLabel = q && q.length > 0 ? q.shift() : '-'
       entries.push({
         username: uname,
-        numbers: pendingBetNums.get(uname) || '-',
+        numbers: numLabel,
         label,
         amt,
         delta,
       })
     }
     rounds.push({ round, entries, myDelta })
-    pendingBetNums.clear()
+    pendingQueues.clear()
   }
   return rounds
 }
@@ -118,11 +133,16 @@ export default function PlayerRoom() {
   const [statsOpen, setStatsOpen] = useState(false)
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
   const [copiedTip, setCopiedTip] = useState('')
+  const confirmLockRef = useRef(false)
+  const [roundUsedDigits, setRoundUsedDigits] = useState([])
 
   const username = sessionStorage.getItem('cUser') || ''
 
   const roundRecords = useMemo(() => buildRoundRecords(messages, username), [messages, username])
   const myTotal = useMemo(() => roundRecords.reduce((s, r) => s + r.myDelta, 0), [roundRecords])
+  const pickedNums = useMemo(() => buildDigitsFromPick(numPick), [numPick])
+  const pickedCount = pickedNums.length
+  const maxNumsReached = pickedCount >= 2
 
   const refreshAmounts = useCallback(() => {
     setAmounts(pickRandomAmounts(maxBet))
@@ -175,6 +195,7 @@ export default function PlayerRoom() {
       setPickedAmount(null)
       setCustomButtonAmount(null)
       setAmounts(pickRandomAmounts(maxBetRef.current))
+      setRoundUsedDigits([])
     })
     s.on('timer', ({ left, total }) => {
       setTimerLeft(left)
@@ -219,12 +240,18 @@ export default function PlayerRoom() {
 
   function toggleNum(n) {
     if (!betting) return
+    if (n === 'smile') {
+      setNumPick((prev) => ({ ...prev, smile: prev.smile > 0 ? 0 : 1 }))
+      return
+    }
     setNumPick((prev) => {
       const cur = prev[n] ?? 0
-      const next = cur > 0 ? 0 : 1
+      const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
-      const nums = buildNumbersFromPick(p)
-      if (next === 1 && !validPickNums(nums)) return prev
+      if (next > cur) {
+        if (digitSum14(p) > 2) return prev
+        if (unionKindsSize(roundUsedDigits, p) > 2) return prev
+      }
       return p
     })
   }
@@ -232,12 +259,17 @@ export default function PlayerRoom() {
   function onConfirm() {
     setAlertText('')
     if (!betting) return
-    const nums = buildNumbersFromPick(numPick)
-    if (nums.length === 0) {
+    if (confirmLockRef.current) return
+    const digits = buildDigitsFromPick(numPick)
+    if (digits.length === 0) {
       setAlertText('请至少选择 1 个数字')
       return
     }
-    if (!validPickNums(nums)) {
+    if (digits.length > 2) {
+      setAlertText('最多 2 个数字位（连点同一数字为两位）')
+      return
+    }
+    if (!validDigitPick(digits)) {
       setAlertText('选号不符合规则')
       return
     }
@@ -249,14 +281,27 @@ export default function PlayerRoom() {
       setAlertText(`金额超过管理员设定的下注上限（${maxBet}）`)
       return
     }
-    socketRef.current?.emit('c_submit_bet', {
-      username,
-      numbers: nums,
-      amount: pickedAmount,
-    })
-    setNumPick(emptyNumPick())
-    setPickedAmount(null)
-    setCustomAmount('')
+    confirmLockRef.current = true
+    const smileOn = (numPick.smile ?? 0) > 0
+    socketRef.current?.emit(
+      'c_submit_bet',
+      {
+        username,
+        numbers: digits,
+        amount: pickedAmount,
+        showSmile: smileOn,
+      },
+      (res) => {
+        confirmLockRef.current = false
+        if (!res?.ok) {
+          setAlertText(res?.error || '下注失败')
+          return
+        }
+        setRoundUsedDigits((prev) => [...new Set([...prev, ...digits])])
+        setNumPick(emptyNumPick())
+        setPickedAmount(null)
+      }
+    )
   }
 
   function onCustomAmountConfirm() {
@@ -293,7 +338,9 @@ export default function PlayerRoom() {
   const boardClass =
     'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
-  const selectedNumText = buildNumbersFromPick(numPick).join('')
+  const digitStr = pickedNums.join('')
+  const selectedNumText =
+    digitStr === '' ? '-' : `${digitStr}${numPick.smile > 0 ? '🙂' : ''}`
 
   function onCopyRound(r) {
     const lines = [`第${r.round}局战绩`]
@@ -325,24 +372,39 @@ export default function PlayerRoom() {
       <div className="flex flex-1 flex-col gap-6">
         <div>
           <p className="mb-2 text-sm text-zinc-400">
-            当前选号：<span className="text-amber-400">{selectedNumText || '-'}</span>
+            当前选号：<span className="text-amber-400">{selectedNumText}</span>
           </p>
           <div className="flex flex-wrap gap-3">
             {nums.map((item) => {
               const c = numPick[item.value] ?? 0
-              const disabled = !betting
+              const d = item.value
+              let kindBlocked = false
+              if (d !== 'smile' && betting && c === 0 && !maxNumsReached) {
+                const u = new Set(roundUsedDigits)
+                for (const k of [1, 2, 3, 4]) {
+                  if (k !== d && (numPick[k] ?? 0) > 0) u.add(k)
+                }
+                u.add(d)
+                kindBlocked = u.size > 2
+              }
+              const numDisabled =
+                d === 'smile'
+                  ? !betting
+                  : !betting || (maxNumsReached && c === 0) || kindBlocked
               return (
                 <button
                   key={String(item.value)}
                   type="button"
-                  disabled={disabled}
+                  disabled={numDisabled}
                   onClick={() => toggleNum(item.value)}
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
-                    disabled
+                    numDisabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                      : c === 1
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                      : c === 2
+                        ? 'bg-amber-400 text-zinc-900'
+                        : c === 1
+                          ? 'bg-emerald-500 text-white'
+                          : 'bg-zinc-700 text-white hover:bg-zinc-600'
                   }`}
                 >
                   {item.label}
@@ -488,7 +550,7 @@ export default function PlayerRoom() {
             )}
             {copiedTip ? <p className="mt-3 text-sm text-emerald-400">{copiedTip}</p> : null}
             <p className="mt-4 text-base font-semibold">
-              我的输赢 {myTotal >= 0 ? '+' : ''}
+              累计 {myTotal >= 0 ? '+' : ''}
               {myTotal}
             </p>
             <button
