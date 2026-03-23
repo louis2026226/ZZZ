@@ -150,6 +150,7 @@ function beginBettingRound(room, opts = {}) {
 
 function settleRound(room, drawNumber) {
   const num = Number(drawNumber)
+  addMessage(room, `【系统】房主公布幸运号：${num}`)
   const lines = []
   for (const [sid, bet] of room.playerBets) {
     const win = bet.numbers.includes(num)
