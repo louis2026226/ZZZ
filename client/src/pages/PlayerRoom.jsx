@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createSocket } from '../socket.js'
 import LogoutButton from '../components/LogoutButton.jsx'
+import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 
@@ -27,6 +28,7 @@ export default function PlayerRoom() {
   const [amounts, setAmounts] = useState(() => pickRandomAmounts())
   const [alertText, setAlertText] = useState('')
   const [joinErr, setJoinErr] = useState('')
+  const [playerCount, setPlayerCount] = useState(0)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -61,6 +63,9 @@ export default function PlayerRoom() {
     })
 
     s.on('messages', ({ list }) => setMessages(list || []))
+    s.on('roomStats', (st) => {
+      if (st?.playerCount != null) setPlayerCount(st.playerCount)
+    })
     s.on('gameStart', () => {
       setPhase('betting')
       setSelectedNums([])
@@ -134,6 +139,7 @@ export default function PlayerRoom() {
     <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
+      <RoomCornerInfo roomId={roomId} playerCount={playerCount} />
 
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
@@ -205,7 +211,7 @@ export default function PlayerRoom() {
         </button>
 
         <p className="text-xs text-zinc-500">
-          房号 {roomId || '-'} · 单注上限 {maxBet || '-'}
+          单注上限 {maxBet || '-'}
           {gameEnded ? ' · 游戏已结束' : ''}
         </p>
       </div>

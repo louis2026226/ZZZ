@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createSocket } from '../socket.js'
 import LogoutButton from '../components/LogoutButton.jsx'
+import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 
@@ -263,6 +264,7 @@ export default function AdminRoom() {
     <div className="flex min-h-full flex-col bg-zinc-950 p-4 pt-14 text-white">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} />
+      <RoomCornerInfo roomId={roomId} playerCount={playerCount} />
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
@@ -333,16 +335,9 @@ export default function AdminRoom() {
       ) : null}
 
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
-        <div
-          className="flex flex-col items-center justify-center border-2 border-amber-500/60 bg-zinc-900 p-3 text-center"
-          style={{ width: 100, height: 120 }}
-        >
-          <div className="text-xs text-zinc-400">房号</div>
-          <div className="text-lg font-bold text-amber-400">{roomId || '-'}</div>
-          <div className="mt-2 text-xs text-zinc-400">当前人数</div>
-          <div className="text-sm">{playerCount}</div>
-          <div className="mt-2 text-xs text-zinc-400">局数</div>
-          <div className="text-sm">
+        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-amber-500/60 bg-zinc-900 px-4 py-3 text-center">
+          <div className="text-xs text-zinc-400">局数</div>
+          <div className="text-lg font-bold text-amber-400">
             {currentRound}/{totalRoundsState || '-'}
           </div>
         </div>
