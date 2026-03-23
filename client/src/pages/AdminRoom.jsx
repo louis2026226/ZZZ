@@ -225,15 +225,27 @@ export default function AdminRoom() {
           </div>
           <div>
             <label className="block text-sm text-zinc-400">单注下注上限金额</label>
-            <button
-              type="button"
-              onClick={() => setMaxBet((v) => v + 200)}
-              className="mt-2 w-full rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-3 text-left hover:bg-zinc-700"
-            >
-              <span className="text-zinc-400">当前：</span>
-              <span className="text-lg font-semibold text-white">{maxBet}</span>
-              <span className="mt-1 block text-xs text-zinc-500">点击 +200</span>
-            </button>
+            <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
+              <button
+                type="button"
+                onClick={() => setMaxBet((v) => Math.max(200, v - 200))}
+                disabled={maxBet <= 200}
+                className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                −
+              </button>
+              <div className="flex flex-1 flex-col items-center justify-center py-2">
+                <span className="text-xs text-zinc-400">当前</span>
+                <span className="text-lg font-semibold text-white">{maxBet}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMaxBet((v) => v + 200)}
+                className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400"
+              >
+                +
+              </button>
+            </div>
           </div>
           {err ? <p className="text-sm text-red-400">{err}</p> : null}
           <button
