@@ -323,7 +323,9 @@ export default function AdminRoom() {
         <LogoutButton socketRef={socketRef} />
         {emptyLobby ? (
           <div className="flex flex-1 flex-col items-center justify-center px-4 pb-12">
-            <h1 className="mb-1 text-center text-xl font-semibold">我的房间</h1>
+            <h1 className="mb-1 text-center text-xl font-semibold">
+              {bUsername || '房主'}的房间
+            </h1>
             <p className="mb-2 text-center text-sm text-zinc-400">
               已创建 {myRooms.length} / 10 个
               {!canCreateMore ? '（已达上限）' : ''}
@@ -346,7 +348,7 @@ export default function AdminRoom() {
           </div>
         ) : (
           <div className="px-3 pb-8 pt-14 sm:px-4">
-            <h1 className="mb-1 text-xl font-semibold">我的房间</h1>
+            <h1 className="mb-1 text-xl font-semibold">{bUsername || '房主'}的房间</h1>
             <p className="mb-4 text-sm text-zinc-400">
               已创建 {myRooms.length} / 10 个
               {!canCreateMore ? '（已达上限）' : ''}
