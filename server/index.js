@@ -150,13 +150,23 @@ app.get('/health', (_, res) => res.json({ ok: true }))
 
 const distPath = path.join(__dirname, '..', 'client', 'dist')
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath, { index: false }))
+  app.use(
+    express.static(distPath, {
+      index: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('index.html')) {
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+        }
+      },
+    })
+  )
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     if (req.path.startsWith('/socket.io')) return next()
     const clean = req.path.split('?')[0]
     const ext = path.extname(clean)
     if (ext) return next()
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
     res.sendFile(path.join(distPath, 'index.html'), (err) => next(err))
   })
 } else {
