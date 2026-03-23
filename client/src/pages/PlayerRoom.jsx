@@ -110,6 +110,7 @@ export default function PlayerRoom() {
   const [numPick, setNumPick] = useState({ 1: 0, 2: 0, 3: 0, 4: 0 })
   const [pickedAmount, setPickedAmount] = useState(null)
   const [customAmount, setCustomAmount] = useState('')
+  const [customButtonAmount, setCustomButtonAmount] = useState(null)
   const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [alertText, setAlertText] = useState('')
   const [joinErr, setJoinErr] = useState('')
@@ -174,6 +175,7 @@ export default function PlayerRoom() {
       setPhase('betting')
       setNumPick(emptyNumPick())
       setPickedAmount(null)
+      setCustomButtonAmount(null)
       setAmounts(pickRandomAmounts(maxBetRef.current))
     })
     s.on('timer', ({ left, total }) => {
@@ -188,6 +190,7 @@ export default function PlayerRoom() {
       setPhase('idle')
       setNumPick(emptyNumPick())
       setPickedAmount(null)
+      setCustomButtonAmount(null)
       if (p?.currentRound != null) setCurrentRound(p.currentRound)
       if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
     })
@@ -255,6 +258,7 @@ export default function PlayerRoom() {
     })
     setNumPick(emptyNumPick())
     setPickedAmount(null)
+    setCustomAmount('')
   }
 
   function onCustomAmountConfirm() {
@@ -273,7 +277,9 @@ export default function PlayerRoom() {
       setAlertText('自选金额必须是 5 的倍数')
       return
     }
+    setCustomButtonAmount(v)
     setPickedAmount(v)
+    setCustomAmount('')
   }
 
   const nums = useMemo(() => [1, 2, 3, 4], [])
@@ -361,6 +367,22 @@ export default function PlayerRoom() {
                 {randomMiLabel(a, idx, amounts)}
               </button>
             ))}
+            {customButtonAmount != null ? (
+              <button
+                type="button"
+                disabled={!betting}
+                onClick={() => setPickedAmount(customButtonAmount)}
+                className={`rounded-lg border border-amber-300 px-3 py-2 text-sm font-medium ${
+                  !betting
+                    ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
+                    : pickedAmount === customButtonAmount
+                      ? 'bg-amber-400 text-zinc-900'
+                      : 'bg-amber-500 text-zinc-900 hover:bg-amber-400'
+                }`}
+              >
+                {customButtonAmount}
+              </button>
+            ) : null}
             <div className="flex items-center gap-2">
               <input
                 type="text"

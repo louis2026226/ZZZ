@@ -150,6 +150,7 @@ export default function AdminRoom() {
   const [numPick, setNumPick] = useState({ 1: 0, 2: 0, 3: 0, 4: 0 })
   const [pickedAmount, setPickedAmount] = useState(null)
   const [customAmount, setCustomAmount] = useState('')
+  const [customButtonAmount, setCustomButtonAmount] = useState(null)
   const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [betAlert, setBetAlert] = useState('')
   const [hostUsername, setHostUsername] = useState('')
@@ -196,6 +197,7 @@ export default function AdminRoom() {
       setSettleOpen(false)
       setNumPick(emptyNumPick())
       setPickedAmount(null)
+      setCustomButtonAmount(null)
       setHostUsername('')
       setNextRoundLeft(0)
       setBetAlert('')
@@ -255,6 +257,7 @@ export default function AdminRoom() {
         setSettleOpen(false)
         setNumPick(emptyNumPick())
         setPickedAmount(null)
+        setCustomButtonAmount(null)
         setAmounts(pickRandomAmounts(betCapRef.current))
       })
       s.on('roundClosed', () => {
@@ -270,6 +273,7 @@ export default function AdminRoom() {
         if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
         setNumPick(emptyNumPick())
         setPickedAmount(null)
+        setCustomButtonAmount(null)
       })
       s.on('gameOver', () => {
         setGameEnded(true)
@@ -410,6 +414,7 @@ export default function AdminRoom() {
     })
     setNumPick(emptyNumPick())
     setPickedAmount(null)
+    setCustomAmount('')
   }
 
   function onCustomAmountConfirm() {
@@ -428,7 +433,9 @@ export default function AdminRoom() {
       setBetAlert('自选金额必须是 5 的倍数')
       return
     }
+    setCustomButtonAmount(v)
     setPickedAmount(v)
+    setCustomAmount('')
   }
 
   if (!inRoomId) {
@@ -695,6 +702,22 @@ export default function AdminRoom() {
                 {randomMiLabel(a, idx, amounts)}
               </button>
             ))}
+            {customButtonAmount != null ? (
+              <button
+                type="button"
+                disabled={!betting}
+                onClick={() => setPickedAmount(customButtonAmount)}
+                className={`rounded-lg border border-amber-300 px-3 py-2 text-sm font-medium ${
+                  !betting
+                    ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
+                    : pickedAmount === customButtonAmount
+                      ? 'bg-amber-400 text-zinc-900'
+                      : 'bg-amber-500 text-zinc-900 hover:bg-amber-400'
+                }`}
+              >
+                {customButtonAmount}
+              </button>
+            ) : null}
             <div className="flex items-center gap-2">
               <input
                 type="text"
