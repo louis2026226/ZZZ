@@ -195,6 +195,32 @@ function settleRound(room, drawNumber) {
 }
 
 const rooms = new Map()
+const MAX_ROOMS_PER_ADMIN = 10
+
+function countAdminRooms(adminUsername) {
+  let n = 0
+  for (const r of rooms.values()) {
+    if (r.adminUsername === adminUsername) n += 1
+  }
+  return n
+}
+
+function listRoomsPayloadForAdmin(adminUsername) {
+  const out = []
+  for (const r of rooms.values()) {
+    if (r.adminUsername !== adminUsername) continue
+    out.push({
+      id: r.id,
+      totalRounds: r.totalRounds,
+      maxBet: r.maxBet,
+      currentRound: r.currentRound,
+      phase: r.phase,
+      gameEnded: r.gameEnded,
+      playerCount: playerCount(r),
+    })
+  }
+  return out
+}
 
 app.get('/health', (_, res) => res.json({ ok: true }))
 
@@ -271,15 +297,15 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '参数无效' })
       return
     }
+    if (countAdminRooms(username) >= MAX_ROOMS_PER_ADMIN) {
+      cb({ ok: false, error: '最多只能创建 10 个房间' })
+      return
+    }
     const room = makeRoom(username)
     room.totalRounds = tr
     room.maxBet = mb
     room.currentRound = 0
     room.gameEnded = false
-    socket.join(roomKey(room.id))
-    room.sockets.set(socket.id, { role: 'B', username })
-    socket.data.roomId = room.id
-    socket.data.role = 'B'
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
     cb({
       ok: true,
@@ -292,6 +318,15 @@ io.on('connection', (socket) => {
         messages: room.messages,
       },
     })
+  })
+
+  socket.on('b_list_my_rooms', ({ username }, cb) => {
+    if (typeof cb !== 'function') return
+    if (!username) {
+      cb({ ok: false, error: '参数不完整' })
+      return
+    }
+    cb({ ok: true, rooms: listRoomsPayloadForAdmin(username) })
   })
 
   socket.on('b_join_existing', ({ username, roomId }, cb) => {

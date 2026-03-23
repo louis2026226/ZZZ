@@ -44,10 +44,24 @@ function buildPersonalRecords(messages, uname) {
   return records
 }
 
+function phaseLabel(phase) {
+  const m = {
+    idle: '待开始',
+    betting: '下注中',
+    closed: '待开奖',
+    countdown: '倒计时',
+    ended: '已结束',
+  }
+  return m[phase] || phase || '-'
+}
+
 export default function AdminRoom() {
   const nav = useNavigate()
   const socketRef = useRef(null)
-  const [creating, setCreating] = useState(() => !sessionStorage.getItem('bRoomId'))
+  const [inRoomId, setInRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
+  const [myRooms, setMyRooms] = useState([])
+  const [listErr, setListErr] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
   const [totalRounds, setTotalRounds] = useState(10)
   const [maxBet, setMaxBet] = useState(200)
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
@@ -89,6 +103,26 @@ export default function AdminRoom() {
   }, [hostUsername])
 
   useEffect(() => {
+    if (!inRoomId) {
+      setMessages([])
+      setRoomId('')
+      setPlayerCount(0)
+      setCurrentRound(0)
+      setTotalRoundsState(0)
+      setMaxBetState(0)
+      setPhase('idle')
+      setGameEnded(false)
+      setTimerLeft(0)
+      setSettleOpen(false)
+      setSelectedNums([])
+      setPickedAmount(null)
+      setHostUsername('')
+      setNextRoundLeft(0)
+      setBetAlert('')
+    }
+  }, [inRoomId])
+
+  useEffect(() => {
     const bUser = sessionStorage.getItem('bUser')
     if (!bUser) {
       nav('/login/b')
@@ -96,7 +130,7 @@ export default function AdminRoom() {
     }
     const s = createSocket()
     socketRef.current = s
-    const rid = sessionStorage.getItem('bRoomId')
+    const rid = inRoomId
 
     function applyRoom(r) {
       if (!r) return
@@ -108,73 +142,88 @@ export default function AdminRoom() {
       setCurrentRound(r.currentRound ?? 0)
       if (r.adminUsername) setHostUsername(r.adminUsername)
       if (r.phase) setPhase(r.phase)
-      if (r.gameEnded) setGameEnded(true)
+      setGameEnded(Boolean(r.gameEnded))
     }
 
     if (rid) {
       s.emit('b_join_existing', { username: bUser, roomId: rid }, (res) => {
         if (!res?.ok) {
           sessionStorage.removeItem('bRoomId')
-          setRoomId('')
-          setCreating(true)
+          setInRoomId('')
           setErr(res?.error || '无法进入房间')
           return
         }
         applyRoom(res.room)
         setAmounts(pickRandomAmounts(res.room.maxBet))
       })
+      s.on('messages', ({ list }) => setMessages(list || []))
+      s.on('roomStats', (st) => {
+        setPlayerCount(st.playerCount ?? 0)
+        setCurrentRound(st.currentRound ?? 0)
+        setTotalRoundsState(st.totalRounds ?? 0)
+        if (st.adminUsername) setHostUsername(st.adminUsername)
+        if (st.phase) setPhase(st.phase)
+        if (st.gameEnded) setGameEnded(true)
+      })
+      s.on('timer', ({ left, total }) => {
+        setTimerLeft(left)
+        if (total != null) setTimerTotal(total)
+      })
+      s.on('gameStart', () => {
+        setNextRoundLeft(0)
+        setPhase('betting')
+        setSettleOpen(false)
+        setSelectedNums([])
+        setPickedAmount(null)
+        refreshAmounts()
+      })
+      s.on('roundClosed', () => {
+        setPhase('closed')
+        setTimerLeft(0)
+        const bu = sessionStorage.getItem('bUser') || ''
+        const host = hostUsernameRef.current
+        if (bu && host && bu === host) setSettleOpen(true)
+      })
+      s.on('newRoundWait', (p) => {
+        setPhase('idle')
+        if (p?.currentRound != null) setCurrentRound(p.currentRound)
+        if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
+        setSelectedNums([])
+        setPickedAmount(null)
+      })
+      s.on('gameOver', () => {
+        setGameEnded(true)
+        setPhase('ended')
+        setSettleOpen(false)
+      })
+      s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
     } else {
-      setCreating(true)
+      setListErr('')
+      s.emit('b_list_my_rooms', { username: bUser }, (res) => {
+        if (!res?.ok) {
+          setListErr(res?.error || '加载房间列表失败')
+          setMyRooms([])
+          return
+        }
+        setMyRooms(res.rooms || [])
+      })
     }
-
-    s.on('messages', ({ list }) => setMessages(list || []))
-    s.on('roomStats', (st) => {
-      setPlayerCount(st.playerCount ?? 0)
-      setCurrentRound(st.currentRound ?? 0)
-      setTotalRoundsState(st.totalRounds ?? 0)
-      if (st.adminUsername) setHostUsername(st.adminUsername)
-      if (st.phase) setPhase(st.phase)
-      if (st.gameEnded) setGameEnded(true)
-    })
-    s.on('timer', ({ left, total }) => {
-      setTimerLeft(left)
-      if (total != null) setTimerTotal(total)
-    })
-    s.on('gameStart', () => {
-      setNextRoundLeft(0)
-      setPhase('betting')
-      setSettleOpen(false)
-      setSelectedNums([])
-      setPickedAmount(null)
-      refreshAmounts()
-    })
-    s.on('roundClosed', () => {
-      setPhase('closed')
-      setTimerLeft(0)
-      const bu = sessionStorage.getItem('bUser') || ''
-      const host = hostUsernameRef.current
-      if (bu && host && bu === host) setSettleOpen(true)
-    })
-    s.on('newRoundWait', (p) => {
-      setPhase('idle')
-      if (p?.currentRound != null) setCurrentRound(p.currentRound)
-      if (p?.totalRounds != null) setTotalRoundsState(p.totalRounds)
-      setSelectedNums([])
-      setPickedAmount(null)
-    })
-    s.on('gameOver', () => {
-      setGameEnded(true)
-      setPhase('ended')
-      setSettleOpen(false)
-    })
-    s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
 
     return () => {
       s.removeAllListeners()
       s.disconnect()
       socketRef.current = null
     }
-  }, [nav, refreshAmounts])
+  }, [inRoomId, nav, refreshAmounts])
+
+  function fetchMyRooms() {
+    const bUser = sessionStorage.getItem('bUser')
+    const s = socketRef.current
+    if (!bUser || !s) return
+    s.emit('b_list_my_rooms', { username: bUser }, (res) => {
+      if (res?.ok) setMyRooms(res.rooms || [])
+    })
+  }
 
   function onCreate(e) {
     e.preventDefault()
@@ -190,18 +239,21 @@ export default function AdminRoom() {
           setErr(res?.error || '创建失败')
           return
         }
-        setCreating(false)
-        setRoomId(res.room.id)
-        sessionStorage.setItem('bRoomId', res.room.id)
-        setMessages(res.room.messages || [])
-        setTotalRoundsState(res.room.totalRounds)
-        setMaxBetState(res.room.maxBet)
-        setCurrentRound(res.room.currentRound ?? 0)
-        setHostUsername(res.room.adminUsername || bUser || '')
-        setPlayerCount(0)
-        setAmounts(pickRandomAmounts(res.room.maxBet))
+        setCreateOpen(false)
+        setErr('')
+        fetchMyRooms()
       }
     )
+  }
+
+  function enterRoom(id) {
+    sessionStorage.setItem('bRoomId', id)
+    setInRoomId(id)
+  }
+
+  function backToLobby() {
+    sessionStorage.removeItem('bRoomId')
+    setInRoomId('')
   }
 
   function onStart() {
@@ -251,66 +303,129 @@ export default function AdminRoom() {
     setPickedAmount(null)
   }
 
-  if (creating) {
+  if (!inRoomId) {
+    const canCreateMore = myRooms.length < 10
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 text-white">
+      <div className="min-h-screen bg-zinc-950 px-3 pb-8 pt-14 text-white sm:mx-auto sm:max-w-lg sm:px-4">
         <LogoutButton socketRef={socketRef} />
-        <form
-          onSubmit={onCreate}
-          className="w-full max-w-md space-y-4 rounded-xl border border-zinc-700 bg-zinc-900 p-6"
+        <h1 className="mb-1 text-xl font-semibold">我的房间</h1>
+        <p className="mb-4 text-sm text-zinc-400">
+          已创建 {myRooms.length} / 10 个
+          {!canCreateMore ? '（已达上限）' : ''}
+        </p>
+        {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
+        <button
+          type="button"
+          disabled={!canCreateMore}
+          onClick={() => {
+            setErr('')
+            setCreateOpen(true)
+          }}
+          className="mb-6 w-full rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <h2 className="text-lg font-semibold">创建房间</h2>
-          <div>
-            <label className="block text-sm text-zinc-400">总局数</label>
-            <div className="mt-2 flex gap-2">
-              {[10, 20, 30].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setTotalRounds(n)}
-                  className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
-                    totalRounds === n
-                      ? 'border-amber-500 bg-amber-600 text-white'
-                      : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
-                  }`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm text-zinc-400">单注下注上限金额</label>
-            <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
-              <button
-                type="button"
-                onClick={() => setMaxBet((v) => Math.max(200, v - 200))}
-                disabled={maxBet <= 200}
-                className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                −
-              </button>
-              <div className="flex flex-1 flex-col items-center justify-center py-2">
-                <span className="text-xs text-zinc-400">当前</span>
-                <span className="text-lg font-semibold text-white">{maxBet}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setMaxBet((v) => v + 200)}
-                className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400"
-              >
-                +
-              </button>
-            </div>
-          </div>
-          {err ? <p className="text-sm text-red-400">{err}</p> : null}
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-amber-600 py-2 font-medium hover:bg-amber-500"
+          创建房间
+        </button>
+        <div className="grid grid-cols-2 gap-3">
+          {myRooms.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => enterRoom(r.id)}
+              className="flex flex-col items-start rounded-xl border border-zinc-600 bg-zinc-900 p-4 text-left shadow hover:border-amber-600/60 hover:bg-zinc-800"
+            >
+              <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
+              <span className="mt-2 text-xs text-zinc-400">
+                {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
+              </span>
+              <span className="mt-1 text-xs text-zinc-500">
+                {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+              </span>
+            </button>
+          ))}
+        </div>
+        {myRooms.length === 0 && !listErr ? (
+          <p className="mt-6 text-center text-sm text-zinc-500">暂无房间，请先创建</p>
+        ) : null}
+
+        {createOpen ? (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => {
+              setCreateOpen(false)
+              setErr('')
+            }}
           >
-            创建并进入
-          </button>
-        </form>
+            <form
+              onSubmit={onCreate}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md space-y-4 rounded-xl border border-zinc-700 bg-zinc-900 p-6"
+            >
+              <h2 className="text-lg font-semibold">创建房间</h2>
+              <div>
+                <label className="block text-sm text-zinc-400">总局数</label>
+                <div className="mt-2 flex gap-2">
+                  {[10, 20, 30].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setTotalRounds(n)}
+                      className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                        totalRounds === n
+                          ? 'border-amber-500 bg-amber-600 text-white'
+                          : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-zinc-400">单注下注上限金额</label>
+                <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setMaxBet((v) => Math.max(200, v - 200))}
+                    disabled={maxBet <= 200}
+                    className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    −
+                  </button>
+                  <div className="flex flex-1 flex-col items-center justify-center py-2">
+                    <span className="text-xs text-zinc-400">当前</span>
+                    <span className="text-lg font-semibold text-white">{maxBet}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMaxBet((v) => v + 200)}
+                    className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+              {err ? <p className="text-sm text-red-400">{err}</p> : null}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateOpen(false)
+                    setErr('')
+                  }}
+                  className="flex-1 rounded-lg border border-zinc-600 py-2"
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-lg bg-amber-600 py-2 font-medium hover:bg-amber-500"
+                >
+                  创建
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -326,6 +441,13 @@ export default function AdminRoom() {
       <NextRoundCountdown value={nextRoundLeft} />
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
+      <button
+        type="button"
+        onClick={backToLobby}
+        className="fixed left-3 top-14 z-50 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
+      >
+        返回大厅
+      </button>
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}
