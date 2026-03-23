@@ -305,47 +305,72 @@ export default function AdminRoom() {
 
   if (!inRoomId) {
     const canCreateMore = myRooms.length < 10
+    const emptyLobby = myRooms.length === 0
     return (
-      <div className="min-h-screen bg-zinc-950 px-3 pb-8 pt-14 text-white sm:mx-auto sm:max-w-lg sm:px-4">
+      <div className="flex min-h-screen min-h-[100dvh] flex-col bg-zinc-950 text-white sm:mx-auto sm:max-w-lg">
         <LogoutButton socketRef={socketRef} />
-        <h1 className="mb-1 text-xl font-semibold">我的房间</h1>
-        <p className="mb-4 text-sm text-zinc-400">
-          已创建 {myRooms.length} / 10 个
-          {!canCreateMore ? '（已达上限）' : ''}
-        </p>
-        {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
-        <button
-          type="button"
-          disabled={!canCreateMore}
-          onClick={() => {
-            setErr('')
-            setCreateOpen(true)
-          }}
-          className="mb-6 w-full rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          创建房间
-        </button>
-        <div className="grid grid-cols-2 gap-3">
-          {myRooms.map((r) => (
+        {emptyLobby ? (
+          <div className="flex flex-1 flex-col items-center justify-center px-4 pb-12">
+            <h1 className="mb-1 text-center text-xl font-semibold">我的房间</h1>
+            <p className="mb-2 text-center text-sm text-zinc-400">
+              已创建 {myRooms.length} / 10 个
+              {!canCreateMore ? '（已达上限）' : ''}
+            </p>
+            {listErr ? <p className="mb-4 max-w-sm text-center text-sm text-red-400">{listErr}</p> : null}
             <button
-              key={r.id}
               type="button"
-              onClick={() => enterRoom(r.id)}
-              className="flex flex-col items-start rounded-xl border border-zinc-600 bg-zinc-900 p-4 text-left shadow hover:border-amber-600/60 hover:bg-zinc-800"
+              disabled={!canCreateMore}
+              onClick={() => {
+                setErr('')
+                setCreateOpen(true)
+              }}
+              className="w-full max-w-sm rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
-              <span className="mt-2 text-xs text-zinc-400">
-                {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
-              </span>
-              <span className="mt-1 text-xs text-zinc-500">
-                {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
-              </span>
+              创建房间
             </button>
-          ))}
-        </div>
-        {myRooms.length === 0 && !listErr ? (
-          <p className="mt-6 text-center text-sm text-zinc-500">暂无房间，请先创建</p>
-        ) : null}
+            {!listErr ? (
+              <p className="mt-4 text-center text-sm text-zinc-500">暂无房间，请先创建</p>
+            ) : null}
+          </div>
+        ) : (
+          <div className="px-3 pb-8 pt-14 sm:px-4">
+            <h1 className="mb-1 text-xl font-semibold">我的房间</h1>
+            <p className="mb-4 text-sm text-zinc-400">
+              已创建 {myRooms.length} / 10 个
+              {!canCreateMore ? '（已达上限）' : ''}
+            </p>
+            {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
+            <button
+              type="button"
+              disabled={!canCreateMore}
+              onClick={() => {
+                setErr('')
+                setCreateOpen(true)
+              }}
+              className="mb-6 w-full rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              创建房间
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              {myRooms.map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => enterRoom(r.id)}
+                  className="flex flex-col items-start rounded-xl border border-zinc-600 bg-zinc-900 p-4 text-left shadow hover:border-amber-600/60 hover:bg-zinc-800"
+                >
+                  <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
+                  <span className="mt-2 text-xs text-zinc-400">
+                    {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
+                  </span>
+                  <span className="mt-1 text-xs text-zinc-500">
+                    {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {createOpen ? (
           <div
