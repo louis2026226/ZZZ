@@ -1,0 +1,5 @@
+1. railway.app 登录 → New Project → Deploy from GitHub → 选 louis-zz
+2. Variables 里加：ADMIN_PASSWORD=你的密码（不要用默认）
+3. 可选：CLIENT_ORIGIN=*（默认已是 *，一般不用加）
+4. Generate Domain，用浏览器打开该域名即可（前后端同域，Socket 自动对上）
+5. 若用自定义域名且构建时要写死 Socket 地址：在 Railway 的 Docker Build Args 加 VITE_SOCKET_URL=https://你的域名

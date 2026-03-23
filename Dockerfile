@@ -1,11 +1,11 @@
-# 构建前端时传入部署地址，例如：
-# docker build --build-arg VITE_SOCKET_URL=http://8.134.168.87:3000 -t room-game .
+# Railway / 自建：不设 VITE_SOCKET_URL 时前端用当前域名连 Socket（同域）
+# docker build --build-arg VITE_SOCKET_URL=https://你的域名 -t room-game .
 FROM node:20-alpine AS client
 WORKDIR /app/client
 COPY client/package.json ./
 RUN npm install
 COPY client/ .
-ARG VITE_SOCKET_URL=http://8.134.168.87:3000
+ARG VITE_SOCKET_URL=
 ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 RUN npm run build
 
