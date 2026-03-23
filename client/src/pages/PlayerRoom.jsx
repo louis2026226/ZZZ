@@ -348,7 +348,9 @@ export default function PlayerRoom() {
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-zinc-400">随机米</p>
+          <p className="mb-2 text-sm text-zinc-400">
+            玩家选择金额：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
+          </p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a, idx) => (
               <button
@@ -404,9 +406,6 @@ export default function PlayerRoom() {
               </button>
             </div>
           </div>
-          <p className="mt-2 text-sm text-zinc-400">
-            已选金额：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
-          </p>
         </div>
 
         {alertText ? <p className="text-sm text-red-400">{alertText}</p> : null}
