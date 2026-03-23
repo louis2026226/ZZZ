@@ -316,9 +316,9 @@ io.on('connection', (socket) => {
     resetRoundBets(room)
     addMessage(room, '【系统】游戏开始，请玩家在 30 秒内完成下注。')
     broadcastRoom(room, 'messages', { list: room.messages })
+    startBettingTimer(room)
     broadcastRoom(room, 'gameStart', {})
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
-    startBettingTimer(room)
   })
 
   socket.on('c_submit_bet', ({ username, numbers, amount }) => {
