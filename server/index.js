@@ -123,7 +123,7 @@ function startBettingTimer(room) {
       room.timerInterval = null
       room.phase = 'closed'
       broadcastRoom(room, 'roundClosed', {})
-      addMessage(room, '【系统】本局已封盘，等待管理员开奖。')
+      addMessage(room, '【系统】本局已封盘，请等待房主公布幸运号。')
       broadcastRoom(room, 'messages', { list: room.messages })
     }
   }, 1000)
@@ -396,6 +396,10 @@ io.on('connection', (socket) => {
     room.playerBets.delete(socket.id)
     if (info?.role === 'C') {
       addMessage(room, `【系统】玩家 ${info.username} 离开房间。`)
+      broadcastRoom(room, 'messages', { list: room.messages })
+    }
+    if (info?.role === 'B') {
+      addMessage(room, '【系统】房主已离开房间，房间内玩法继续进行。')
       broadcastRoom(room, 'messages', { list: room.messages })
     }
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
