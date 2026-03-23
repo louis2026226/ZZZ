@@ -123,7 +123,10 @@ function startBettingTimer(room) {
       room.timerInterval = null
       room.phase = 'closed'
       broadcastRoom(room, 'roundClosed', {})
-      addMessage(room, '【系统】本局已封盘，请等待房主公布幸运号。')
+      addMessage(
+        room,
+        `【系统】第 ${room.currentRound} / ${room.totalRounds} 局准备中，等待管理员公布幸运号。`
+      )
       broadcastRoom(room, 'messages', { list: room.messages })
     }
   }, 1000)

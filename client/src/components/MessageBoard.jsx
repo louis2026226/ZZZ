@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react'
 
+function displayMessage(text) {
+  if (!text) return text
+  return text.replace(
+    /【系统】第 (\d+) \/ (\d+) 局准备中，管理员可点击「开始」。/g,
+    '【系统】第 $1 / $2 局准备中，等待管理员公布幸运号。'
+  )
+}
+
 function lineClass(text) {
   if (!text) return 'text-zinc-100'
   if (text.includes('游戏开始')) return 'text-emerald-400'
@@ -34,7 +42,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
             </li>
           ) : (
             <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
-              {m.text}
+              {displayMessage(m.text)}
             </li>
           )
         )}
