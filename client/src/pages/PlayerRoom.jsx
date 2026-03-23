@@ -12,10 +12,20 @@ function pickRandomAmounts(maxBet) {
   if (!Number.isFinite(n) || n < 10) return []
   const cap = Math.floor(n / 5) * 5
   if (cap < 10) return []
+  if (cap === 10) return [10]
   const pool = []
-  for (let i = 10; i <= cap; i += 5) pool.push(i)
+  for (let i = 15; i <= cap - 5; i += 5) pool.push(i)
   const shuffled = [...pool].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, Math.min(10, pool.length)).sort((a, b) => a - b)
+  const rand = shuffled.slice(0, Math.min(10, pool.length)).sort((a, b) => a - b)
+  return [10, ...rand, cap]
+}
+
+function randomMiLabel(amount, index, list) {
+  if (list.length === 1) return String(amount)
+  const hi = list[list.length - 1]
+  if (index === 0 && amount === 10) return `最小${amount}`
+  if (index === list.length - 1 && amount === hi && hi > 10) return `最大${amount}`
+  return String(amount)
 }
 
 const STATS_PREFIX = '【本局统计】'
@@ -236,9 +246,9 @@ export default function PlayerRoom() {
         <div>
           <p className="mb-2 text-sm text-zinc-400">随机米</p>
           <div className="flex flex-wrap gap-2">
-            {amounts.map((a) => (
+            {amounts.map((a, idx) => (
               <button
-                key={a}
+                key={`${idx}-${a}`}
                 type="button"
                 disabled={!betting}
                 onClick={() => setPickedAmount(a)}
@@ -250,7 +260,7 @@ export default function PlayerRoom() {
                       : 'bg-zinc-700 hover:bg-zinc-600'
                 }`}
               >
-                {a}
+                {randomMiLabel(a, idx, amounts)}
               </button>
             ))}
           </div>
