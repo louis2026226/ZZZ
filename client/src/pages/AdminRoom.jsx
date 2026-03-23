@@ -489,14 +489,11 @@ export default function AdminRoom() {
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
-      <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
-      <button
-        type="button"
-        onClick={backToLobby}
-        className="fixed left-3 top-14 z-50 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
-      >
-        返回大厅
-      </button>
+      <LogoutButton
+        socketRef={socketRef}
+        onStatsClick={() => setStatsOpen(true)}
+        onBackToLobby={backToLobby}
+      />
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}

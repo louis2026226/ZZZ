@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-export default function LogoutButton({ socketRef, onStatsClick }) {
+export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby }) {
   const nav = useNavigate()
 
   function onLogout() {
@@ -33,6 +33,15 @@ export default function LogoutButton({ socketRef, onStatsClick }) {
           className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
         >
           战绩
+        </button>
+      ) : null}
+      {onBackToLobby ? (
+        <button
+          type="button"
+          onClick={onBackToLobby}
+          className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
+        >
+          返回大厅
         </button>
       ) : null}
     </div>
