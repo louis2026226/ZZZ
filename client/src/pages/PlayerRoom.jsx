@@ -287,9 +287,7 @@ export default function PlayerRoom() {
 
       <div className="flex flex-1 flex-col gap-6">
         <div>
-          <p className="mb-2 text-sm text-zinc-400">
-            选号：点绿 1 次、再点黄 2 次、再点取消。3 位时只允许两种数字（如 112/221），不允许 111/222/333/444，也不允许 123/124/134
-          </p>
+          <p className="mb-2 text-sm text-zinc-400">当前选号：{selectedNumText || '-'}</p>
           <div className="flex flex-wrap gap-3">
             {nums.map((n) => {
               const c = numPick[n] ?? 0
