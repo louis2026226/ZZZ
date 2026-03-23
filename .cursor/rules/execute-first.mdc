@@ -11,3 +11,4 @@ alwaysApply: true
 - **不要**让用户使用 **nano**；需要改服务器文件时给出 **可复制整段** 的非 nano 方式（如 `cat <<'EOF' ... EOF`、`vi` 要点、或网页/面板操作）。
 - 若某步必须由用户在本机完成（例如登录 GitHub 网页、输入密码），**只列最短必要步骤**，不展开废话。
 - 已配置 `origin` 且需同步线上时：**commit 后执行 `git push origin main`**（由助手代跑）。Railway 绑定仓库后 push 即自动部署；ECS 可选设 GitHub 变量 `DEPLOY_SSH_ENABLED=true` 并配 `DEPLOY_*` Secret 后同 push 触发 SSH。push 因凭据失败时再提示用户处理 PAT。
+- **每次有代码更新并 push 后**：在回复末尾用固定格式告知用户——**版本号**（与 `client/src/App.jsx` 左下角 `V*` 字符串一致，有改版本则先改再推）+ **已推送 GitHub** + **Railway 将自动部署（约 1～3 分钟）**；若仅本地 commit 未 push 须说明未部署。
