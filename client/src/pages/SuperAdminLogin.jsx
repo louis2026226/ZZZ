@@ -1,13 +1,29 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { createSocket } from '../socket.js'
 
 export default function SuperAdminLogin() {
+  const nav = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
 
   function onSubmit(e) {
     e.preventDefault()
-    setErr('第2步将接入后端登录校验')
+    setErr('')
+    const s = createSocket()
+    s.emit('super_admin_login', { username: username.trim(), password }, (res) => {
+      if (!res?.ok) {
+        setErr(res?.error || '登录失败')
+        s.disconnect()
+        return
+      }
+      sessionStorage.setItem('superAdminOk', '1')
+      sessionStorage.setItem('superAdminSuUser', username.trim())
+      sessionStorage.setItem('superAdminSuPass', password)
+      s.disconnect()
+      nav('/super-admin/panel', { replace: true })
+    })
   }
 
   return (

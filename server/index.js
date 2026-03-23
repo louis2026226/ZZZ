@@ -9,6 +9,8 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PORT = Number(process.env.PORT) || 3000
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin888'
+const SUPER_ADMIN_USER = 'admin'
+const SUPER_ADMIN_PASS = '123456'
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '*'
 
 const app = express()
@@ -185,6 +187,10 @@ function settleRound(room, drawNumber) {
   const num = normalizePickToken(drawNumber)
   if (num == null) return
   addMessage(room, `【系统】房主公布幸运号：${pickTokenLabel(num)}`)
+  const owner = room.adminUsername
+  ensureBStats(owner)
+  const st = bStats.get(owner)
+  st.totalRoundsSettled += 1
   const lines = []
   for (const [sid, bet] of room.playerBets) {
     const win = bet.numbers.includes(num)
@@ -192,6 +198,10 @@ function settleRound(room, drawNumber) {
     const amt = bet.amount
     lines.push(`${bet.username} | ${label} | ${amt}`)
     addMessage(room, `【结算】${bet.username} | ${label} | ${amt}`)
+    const delta = win ? amt : -amt
+    const prevPnl = st.cPnL.get(bet.username) || 0
+    st.cPnL.set(bet.username, prevPnl + delta)
+    if (bet.username === owner) st.selfPnL += delta
   }
   if (lines.length === 0) {
     addMessage(room, '【结算】本局无人下注。')
@@ -230,7 +240,35 @@ function settleRound(room, drawNumber) {
 }
 
 const rooms = new Map()
+const bAccounts = new Map()
+const bStats = new Map()
 const MAX_ROOMS_PER_ADMIN = 10
+
+function ensureBStats(username) {
+  if (!bStats.has(username)) {
+    bStats.set(username, {
+      totalRoundsSettled: 0,
+      selfPnL: 0,
+      cUsers: new Set(),
+      cPnL: new Map(),
+    })
+  }
+}
+
+function serializeBStats(username) {
+  const st = bStats.get(username)
+  if (!st) return { totalRoundsSettled: 0, selfPnL: 0, distinctCCount: 0, cRows: [] }
+  const cRows = []
+  for (const cname of st.cUsers) {
+    cRows.push({ username: cname, pnl: st.cPnL.get(cname) || 0 })
+  }
+  return {
+    totalRoundsSettled: st.totalRoundsSettled,
+    selfPnL: st.selfPnL,
+    distinctCCount: st.cUsers.size,
+    cRows,
+  }
+}
 
 function countAdminRooms(adminUsername) {
   let n = 0
@@ -333,11 +371,82 @@ if (fs.existsSync(distPath)) {
 io.on('connection', (socket) => {
   socket.on('b_login', ({ username, password }, cb) => {
     if (typeof cb !== 'function') return
-    if (!username || password !== ADMIN_PASSWORD) {
+    const u = typeof username === 'string' ? username.trim() : ''
+    if (!u || password !== ADMIN_PASSWORD) {
       cb({ ok: false, error: '用户名或密码错误' })
       return
     }
-    cb({ ok: true, username })
+    let acc = bAccounts.get(u)
+    if (!acc) {
+      acc = { createdAt: Date.now(), authorized: true, state: 'active' }
+      bAccounts.set(u, acc)
+      ensureBStats(u)
+    } else {
+      if (!acc.authorized) {
+        cb({ ok: false, error: '账号未授权' })
+        return
+      }
+      if (acc.state === 'banned') {
+        cb({ ok: false, error: '账号已封禁' })
+        return
+      }
+      if (acc.state === 'disabled') {
+        cb({ ok: false, error: '账号已停用' })
+        return
+      }
+    }
+    cb({ ok: true, username: u })
+  })
+
+  socket.on('super_admin_login', ({ username, password }, cb) => {
+    if (typeof cb !== 'function') return
+    const u = typeof username === 'string' ? username.trim() : ''
+    if (u === SUPER_ADMIN_USER && password === SUPER_ADMIN_PASS) {
+      cb({ ok: true })
+      return
+    }
+    cb({ ok: false, error: '账号或密码错误' })
+  })
+
+  socket.on('super_admin_list_b', ({ suUser, suPass }, cb) => {
+    if (typeof cb !== 'function') return
+    if (suUser !== SUPER_ADMIN_USER || suPass !== SUPER_ADMIN_PASS) {
+      cb({ ok: false, error: '未授权' })
+      return
+    }
+    const list = []
+    for (const [name, acc] of bAccounts) {
+      list.push({
+        username: name,
+        createdAt: acc.createdAt,
+        authorized: acc.authorized,
+        state: acc.state,
+        ...serializeBStats(name),
+      })
+    }
+    list.sort((a, b) => a.username.localeCompare(b.username))
+    cb({ ok: true, list })
+  })
+
+  socket.on('super_admin_update_b', ({ suUser, suPass, targetUsername, authorized, state }, cb) => {
+    if (typeof cb !== 'function') return
+    if (suUser !== SUPER_ADMIN_USER || suPass !== SUPER_ADMIN_PASS) {
+      cb({ ok: false, error: '未授权' })
+      return
+    }
+    const t = typeof targetUsername === 'string' ? targetUsername.trim() : ''
+    if (!t) {
+      cb({ ok: false, error: '参数不完整' })
+      return
+    }
+    if (!bAccounts.has(t)) {
+      bAccounts.set(t, { createdAt: Date.now(), authorized: true, state: 'active' })
+      ensureBStats(t)
+    }
+    const acc = bAccounts.get(t)
+    if (typeof authorized === 'boolean') acc.authorized = authorized
+    if (state === 'active' || state === 'disabled' || state === 'banned') acc.state = state
+    cb({ ok: true })
   })
 
   socket.on('c_login', ({ username, roomId }, cb) => {
@@ -434,11 +543,18 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '房间不存在' })
       return
     }
+    const cu = typeof username === 'string' ? username.trim() : ''
+    if (!cu) {
+      cb({ ok: false, error: '参数不完整' })
+      return
+    }
+    ensureBStats(room.adminUsername)
+    bStats.get(room.adminUsername).cUsers.add(cu)
     socket.join(roomKey(room.id))
-    room.sockets.set(socket.id, { role: 'C', username })
+    room.sockets.set(socket.id, { role: 'C', username: cu })
     socket.data.roomId = room.id
     socket.data.role = 'C'
-    addMessage(room, `【系统】玩家 ${username} 进入房间。`)
+    addMessage(room, `【系统】玩家 ${cu} 进入房间。`)
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     syncEmptyPlayerDestroyTimer(room)
