@@ -5,6 +5,7 @@ import LogoutButton from '../components/LogoutButton.jsx'
 import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
+import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
@@ -68,6 +69,7 @@ export default function AdminRoom() {
   const [hostUsername, setHostUsername] = useState('')
   const hostUsernameRef = useRef('')
   const [statsOpen, setStatsOpen] = useState(false)
+  const [nextRoundLeft, setNextRoundLeft] = useState(0)
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
@@ -139,6 +141,7 @@ export default function AdminRoom() {
       if (total != null) setTimerTotal(total)
     })
     s.on('gameStart', () => {
+      setNextRoundLeft(0)
       setPhase('betting')
       setSettleOpen(false)
       setSelectedNums([])
@@ -164,6 +167,7 @@ export default function AdminRoom() {
       setPhase('ended')
       setSettleOpen(false)
     })
+    s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
 
     return () => {
       s.removeAllListeners()
@@ -313,11 +317,13 @@ export default function AdminRoom() {
 
   const boardClass =
     'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
-  const canStart = isHost && !gameEnded && phase !== 'betting' && phase !== 'closed'
+  const canStart =
+    isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
   const showSettleBtn = isHost && !gameEnded && phase === 'closed' && !settleOpen
 
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
+      <NextRoundCountdown value={nextRoundLeft} />
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
       <RoomCornerInfo

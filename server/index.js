@@ -44,6 +44,7 @@ function makeRoom(adminUsername) {
     timerLeft: 0,
     timerInterval: null,
     nextRoundTimeout: null,
+    countdownIv: null,
     sockets: new Map(),
     playerBets: new Map(),
     messages: [],
@@ -78,6 +79,10 @@ function clearRoomTimers(room) {
   if (room.nextRoundTimeout) {
     clearTimeout(room.nextRoundTimeout)
     room.nextRoundTimeout = null
+  }
+  if (room.countdownIv) {
+    clearInterval(room.countdownIv)
+    room.countdownIv = null
   }
 }
 
@@ -124,6 +129,22 @@ function startBettingTimer(room) {
   }, 1000)
 }
 
+function beginBettingRound(room, opts = {}) {
+  if (room.gameEnded) return false
+  if (room.phase === 'betting') return false
+  if (room.currentRound >= room.totalRounds) return false
+  if (room.phase === 'countdown' && !opts.afterCountdown) return false
+  room.currentRound += 1
+  clearRoomTimers(room)
+  resetRoundBets(room)
+  addMessage(room, '【系统】游戏开始，请玩家在 30 秒内完成下注。')
+  broadcastRoom(room, 'messages', { list: room.messages })
+  startBettingTimer(room)
+  broadcastRoom(room, 'gameStart', {})
+  broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+  return true
+}
+
 function settleRound(room, drawNumber) {
   const num = Number(drawNumber)
   const lines = []
@@ -152,14 +173,22 @@ function settleRound(room, drawNumber) {
     return
   }
 
-  room.nextRoundTimeout = setTimeout(() => {
-    room.nextRoundTimeout = null
-    resetRoundBets(room)
-    room.phase = 'idle'
-    addMessage(room, `【系统】第 ${room.currentRound + 1} / ${room.totalRounds} 局准备中，管理员可点击「开始」。`)
-    broadcastRoom(room, 'messages', { list: room.messages })
-    broadcastRoom(room, 'newRoundWait', { currentRound: room.currentRound, totalRounds: room.totalRounds })
-  }, 5000)
+  clearRoomTimers(room)
+  room.phase = 'countdown'
+  broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+  let t = 3
+  broadcastRoom(room, 'nextRoundCountdown', { left: 3 })
+  room.countdownIv = setInterval(() => {
+    t -= 1
+    if (t <= 0) {
+      clearInterval(room.countdownIv)
+      room.countdownIv = null
+      broadcastRoom(room, 'nextRoundCountdown', { left: 0 })
+      beginBettingRound(room, { afterCountdown: true })
+      return
+    }
+    broadcastRoom(room, 'nextRoundCountdown', { left: t })
+  }, 1000)
 }
 
 const rooms = new Map()
@@ -324,17 +353,8 @@ io.on('connection', (socket) => {
     if (!room || socket.data.role !== 'B') return
     const info = room.sockets.get(socket.id)
     if (!info || info.username !== room.adminUsername) return
-    if (room.gameEnded) return
-    if (room.phase === 'betting') return
-    if (room.currentRound >= room.totalRounds) return
-    room.currentRound += 1
-    clearRoomTimers(room)
-    resetRoundBets(room)
-    addMessage(room, '【系统】游戏开始，请玩家在 30 秒内完成下注。')
-    broadcastRoom(room, 'messages', { list: room.messages })
-    startBettingTimer(room)
-    broadcastRoom(room, 'gameStart', {})
-    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    if (room.countdownIv) return
+    beginBettingRound(room)
   })
 
   socket.on('c_submit_bet', ({ username, numbers, amount }) => {

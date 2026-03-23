@@ -5,6 +5,7 @@ import LogoutButton from '../components/LogoutButton.jsx'
 import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
+import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
@@ -62,6 +63,7 @@ export default function PlayerRoom() {
   const [currentRound, setCurrentRound] = useState(0)
   const [totalRoundsState, setTotalRoundsState] = useState(0)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [nextRoundLeft, setNextRoundLeft] = useState(0)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -111,6 +113,7 @@ export default function PlayerRoom() {
       if (st?.totalRounds != null) setTotalRoundsState(st.totalRounds)
     })
     s.on('gameStart', () => {
+      setNextRoundLeft(0)
       setPhase('betting')
       setSelectedNums([])
       setPickedAmount(null)
@@ -135,6 +138,7 @@ export default function PlayerRoom() {
       setGameEnded(true)
       setPhase('ended')
     })
+    s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
 
     return () => {
       s.removeAllListeners()
@@ -185,6 +189,7 @@ export default function PlayerRoom() {
 
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
+      <NextRoundCountdown value={nextRoundLeft} />
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
       <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
       <RoomCornerInfo
