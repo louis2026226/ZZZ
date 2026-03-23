@@ -150,12 +150,17 @@ app.get('/health', (_, res) => res.json({ ok: true }))
 
 const distPath = path.join(__dirname, '..', 'client', 'dist')
 if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath))
+  app.use(express.static(distPath, { index: false }))
   app.use((req, res, next) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next()
     if (req.path.startsWith('/socket.io')) return next()
+    const clean = req.path.split('?')[0]
+    const ext = path.extname(clean)
+    if (ext) return next()
     res.sendFile(path.join(distPath, 'index.html'), (err) => next(err))
   })
+} else {
+  console.warn('[room-game] missing client/dist at', distPath, '- run: cd client && npm run build')
 }
 
 io.on('connection', (socket) => {
