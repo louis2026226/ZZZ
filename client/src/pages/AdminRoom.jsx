@@ -31,12 +31,12 @@ function randomMiLabel(amount, index, list) {
 const STATS_PREFIX = '【本局统计】'
 
 function emptyNumPick() {
-  return { 1: 0, 2: 0, 3: 0, 4: 0 }
+  return { 1: 0, 2: 0, 3: 0, 4: 0, smile: 0 }
 }
 
 function buildNumbersFromPick(pick) {
   const out = []
-  for (const d of [1, 2, 3, 4]) {
+  for (const d of [1, 2, 3, 4, 'smile']) {
     const c = pick[d] ?? 0
     for (let i = 0; i < c; i++) out.push(d)
   }
@@ -45,11 +45,9 @@ function buildNumbersFromPick(pick) {
 
 function validPickNums(nums) {
   const len = nums.length
-  if (len < 1 || len > 3) return false
+  if (len < 1 || len > 2) return false
   const u = new Set(nums)
-  if (u.size > 2) return false
-  if (len === 3 && u.size === 1) return false
-  return true
+  return u.size === len
 }
 
 function buildRoundRecords(messages, myName) {
@@ -135,6 +133,7 @@ export default function AdminRoom() {
   const [createOpen, setCreateOpen] = useState(false)
   const [totalRounds, setTotalRounds] = useState(10)
   const [maxBet, setMaxBet] = useState(200)
+  const [betSeconds, setBetSeconds] = useState(30)
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [messages, setMessages] = useState([])
   const [playerCount, setPlayerCount] = useState(0)
@@ -147,7 +146,7 @@ export default function AdminRoom() {
   const [timerTotal, setTimerTotal] = useState(30)
   const [settleOpen, setSettleOpen] = useState(false)
   const [err, setErr] = useState('')
-  const [numPick, setNumPick] = useState({ 1: 0, 2: 0, 3: 0, 4: 0 })
+  const [numPick, setNumPick] = useState(() => emptyNumPick())
   const [pickedAmount, setPickedAmount] = useState(null)
   const [customAmount, setCustomAmount] = useState('')
   const [customButtonAmount, setCustomButtonAmount] = useState(null)
@@ -325,7 +324,12 @@ export default function AdminRoom() {
     if (!s) return
     s.emit(
       'b_create_room',
-      { username: bUser, totalRounds: Number(totalRounds), maxBet: Number(maxBet) },
+      {
+        username: bUser,
+        totalRounds: Number(totalRounds),
+        maxBet: Number(maxBet),
+        betSeconds: Number(betSeconds),
+      },
       (res) => {
         if (!res?.ok) {
           setErr(res?.error || '创建失败')
@@ -373,16 +377,25 @@ export default function AdminRoom() {
 
   const showTimer = phase === 'betting' && timerLeft > 0
   const betting = phase === 'betting' && timerLeft > 0
-  const nums = useMemo(() => [1, 2, 3, 4], [])
+  const nums = useMemo(
+    () => [
+      { value: 1, label: '1' },
+      { value: 2, label: '2' },
+      { value: 3, label: '3' },
+      { value: 4, label: '4' },
+      { value: 'smile', label: '🙂' },
+    ],
+    []
+  )
 
   function toggleNum(n) {
     if (!betting) return
     setNumPick((prev) => {
       const cur = prev[n] ?? 0
-      const next = (cur + 1) % 3
+      const next = cur > 0 ? 0 : 1
       const p = { ...prev, [n]: next }
       const nums = buildNumbersFromPick(p)
-      if (next > cur && !validPickNums(nums)) return prev
+      if (next === 1 && !validPickNums(nums)) return prev
       return p
     })
   }
@@ -565,6 +578,25 @@ export default function AdminRoom() {
                 </div>
               </div>
               <div>
+                <label className="block text-sm text-zinc-400">下注倒计时（秒）</label>
+                <div className="mt-2 flex gap-2">
+                  {[10, 30, 60].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setBetSeconds(n)}
+                      className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                        betSeconds === n
+                          ? 'border-amber-500 bg-amber-600 text-white'
+                          : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="block text-sm text-zinc-400">单注下注上限金额</label>
                 <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
                   <button
@@ -656,26 +688,24 @@ export default function AdminRoom() {
             当前选号：<span className="text-amber-400">{selectedNumText || '-'}</span>
           </p>
           <div className="flex flex-wrap gap-3">
-            {nums.map((n) => {
-              const c = numPick[n] ?? 0
+            {nums.map((item) => {
+              const c = numPick[item.value] ?? 0
               const disabled = !betting
               return (
                 <button
-                  key={n}
+                  key={String(item.value)}
                   type="button"
                   disabled={disabled}
-                  onClick={() => toggleNum(n)}
+                  onClick={() => toggleNum(item.value)}
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
                     disabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
-                      : c === 2
-                        ? 'bg-amber-400 text-zinc-900'
-                        : c === 1
-                          ? 'bg-emerald-500 text-white'
-                          : 'bg-zinc-700 text-white hover:bg-zinc-600'
+                      : c === 1
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-zinc-700 text-white hover:bg-zinc-600'
                   }`}
                 >
-                  {n}
+                  {item.label}
                 </button>
               )
             })}
@@ -798,15 +828,15 @@ export default function AdminRoom() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-600 bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold">选择开奖数字</h3>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((n) => (
+            <div className="grid grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 'smile'].map((n) => (
                 <button
-                  key={n}
+                  key={String(n)}
                   type="button"
                   onClick={() => onChooseDraw(n)}
                   className="rounded-lg bg-amber-600 py-4 text-xl font-bold hover:bg-amber-500"
                 >
-                  {n}
+                  {n === 'smile' ? '🙂' : n}
                 </button>
               ))}
             </div>

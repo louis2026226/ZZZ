@@ -38,6 +38,7 @@ function makeRoom(adminUsername) {
     adminUsername,
     totalRounds: 0,
     maxBet: 0,
+    betSeconds: 30,
     currentRound: 0,
     gameEnded: false,
     phase: 'idle',
@@ -144,11 +145,12 @@ function resetRoundBets(room) {
 function startBettingTimer(room) {
   clearRoomTimers(room)
   room.phase = 'betting'
-  room.timerLeft = 30
-  broadcastRoom(room, 'timer', { left: room.timerLeft, total: 30 })
+  const total = room.betSeconds || 30
+  room.timerLeft = total
+  broadcastRoom(room, 'timer', { left: room.timerLeft, total })
   room.timerInterval = setInterval(() => {
     room.timerLeft -= 1
-    broadcastRoom(room, 'timer', { left: room.timerLeft, total: 30 })
+    broadcastRoom(room, 'timer', { left: room.timerLeft, total })
     if (room.timerLeft <= 0) {
       clearInterval(room.timerInterval)
       room.timerInterval = null
@@ -171,7 +173,7 @@ function beginBettingRound(room, opts = {}) {
   room.currentRound += 1
   clearRoomTimers(room)
   resetRoundBets(room)
-  addMessage(room, '【系统】游戏开始，请玩家在 30 秒内完成下注。')
+  addMessage(room, `【系统】游戏开始，请玩家在 ${room.betSeconds || 30} 秒内完成下注。`)
   broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
   broadcastRoom(room, 'gameStart', {})
@@ -180,8 +182,9 @@ function beginBettingRound(room, opts = {}) {
 }
 
 function settleRound(room, drawNumber) {
-  const num = Number(drawNumber)
-  addMessage(room, `【系统】房主公布幸运号：${num}`)
+  const num = normalizePickToken(drawNumber)
+  if (num == null) return
+  addMessage(room, `【系统】房主公布幸运号：${pickTokenLabel(num)}`)
   const lines = []
   for (const [sid, bet] of room.playerBets) {
     const win = bet.numbers.includes(num)
@@ -273,6 +276,17 @@ function dismissRoom(room) {
   }
 }
 
+function normalizePickToken(v) {
+  if (v === 'smile' || v === '🙂') return 'smile'
+  const n = Number(v)
+  if (Number.isInteger(n) && n >= 1 && n <= 4) return n
+  return null
+}
+
+function pickTokenLabel(v) {
+  return v === 'smile' ? '🙂' : String(v)
+}
+
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 const distPath = path.join(__dirname, '..', 'client', 'dist')
@@ -336,7 +350,7 @@ io.on('connection', (socket) => {
     cb({ ok: true, username, roomId: room.id })
   })
 
-  socket.on('b_create_room', ({ username, totalRounds, maxBet }, cb) => {
+  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds }, cb) => {
     if (typeof cb !== 'function') return
     if (!username || !totalRounds || !maxBet) {
       cb({ ok: false, error: '参数不完整' })
@@ -344,7 +358,8 @@ io.on('connection', (socket) => {
     }
     const tr = Number(totalRounds)
     const mb = Number(maxBet)
-    if (tr < 1 || mb < 1) {
+    const bs = Number(betSeconds || 30)
+    if (tr < 1 || mb < 1 || ![10, 30, 60].includes(bs)) {
       cb({ ok: false, error: '参数无效' })
       return
     }
@@ -355,6 +370,7 @@ io.on('connection', (socket) => {
     const room = makeRoom(username)
     room.totalRounds = tr
     room.maxBet = mb
+    room.betSeconds = bs
     room.currentRound = 0
     room.gameEnded = false
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
@@ -366,6 +382,7 @@ io.on('connection', (socket) => {
         adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
+        betSeconds: room.betSeconds,
         currentRound: room.currentRound,
         messages: room.messages,
       },
@@ -401,6 +418,7 @@ io.on('connection', (socket) => {
         adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
+        betSeconds: room.betSeconds,
         currentRound: room.currentRound,
         messages: room.messages,
         phase: room.phase,
@@ -431,6 +449,7 @@ io.on('connection', (socket) => {
         adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
+        betSeconds: room.betSeconds,
         currentRound: room.currentRound,
         messages: room.messages,
         phase: room.phase,
@@ -455,16 +474,15 @@ io.on('connection', (socket) => {
     if (!room || (socket.data.role !== 'C' && socket.data.role !== 'B')) return
     if (room.phase !== 'betting') return
     const raw = Array.isArray(numbers) ? numbers : []
-    const nums = raw.map(Number).filter((n) => n >= 1 && n <= 4)
-    if (nums.length !== raw.length) return
-    if (nums.length < 1 || nums.length > 3) return
+    const nums = raw.map(normalizePickToken)
+    if (nums.some((x) => x == null)) return
+    if (nums.length < 1 || nums.length > 2) return
     const uniq = [...new Set(nums)]
-    if (uniq.length > 2) return
-    if (nums.length === 3 && uniq.length === 1) return
+    if (uniq.length !== nums.length) return
     const amt = Number(amount)
     if (!amt || amt < 10 || amt > room.maxBet || amt % 5 !== 0) return
-    room.playerBets.set(socket.id, { username, numbers: nums, amount: amt })
-    const msg = `【下注】${username} | 选号 ${nums.join('')} | 金额 ${amt}`
+    room.playerBets.set(socket.id, { username, numbers: uniq, amount: amt })
+    const msg = `【下注】${username} | 选号 ${uniq.map(pickTokenLabel).join('')} | 金额 ${amt}`
     addMessage(room, msg)
     broadcastRoom(room, 'messages', { list: room.messages })
   })
@@ -476,8 +494,8 @@ io.on('connection', (socket) => {
     const info = room.sockets.get(socket.id)
     if (!info || info.username !== room.adminUsername) return
     if (room.phase !== 'closed') return
-    const n = Number(drawNumber)
-    if (n < 1 || n > 4) return
+    const n = normalizePickToken(drawNumber)
+    if (n == null) return
     clearRoomTimers(room)
     settleRound(room, n)
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
