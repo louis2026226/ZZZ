@@ -311,7 +311,9 @@ export default function PlayerRoom() {
 
       <div className="flex flex-1 flex-col gap-6">
         <div>
-          <p className="mb-2 text-sm text-zinc-400">当前选号：{selectedNumText || '-'}</p>
+          <p className="mb-2 text-sm text-zinc-400">
+            当前选号：<span className="text-amber-400">{selectedNumText || '-'}</span>
+          </p>
           <div className="flex flex-wrap gap-3">
             {nums.map((n) => {
               const c = numPick[n] ?? 0
@@ -380,6 +382,9 @@ export default function PlayerRoom() {
               </button>
             </div>
           </div>
+          <p className="mt-2 text-sm text-zinc-400">
+            已选金额：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
+          </p>
         </div>
 
         {alertText ? <p className="text-sm text-red-400">{alertText}</p> : null}
@@ -392,7 +397,7 @@ export default function PlayerRoom() {
             onClick={onConfirm}
             className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
-            {selectedNumText ? `确定（${selectedNumText}）` : '确定'}
+            确定
           </button>
           <button
             type="button"
