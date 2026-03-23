@@ -348,101 +348,94 @@ export default function AdminRoom() {
     const canCreateMore = myRooms.length < 10
     const emptyLobby = myRooms.length === 0
     return (
-      <div className="flex min-h-screen min-h-[100dvh] flex-col bg-zinc-950 text-white sm:mx-auto sm:max-w-lg">
+      <div className="relative flex min-h-[100dvh] flex-col bg-zinc-950 text-white sm:mx-auto sm:max-w-lg">
         <LogoutButton socketRef={socketRef} />
-        {emptyLobby ? (
-          <div className="flex flex-1 flex-col items-center justify-center px-4 pb-12">
-            <h1 className="mb-1 text-center text-xl font-semibold">
-              {bUsername || '房主'}的房间
-            </h1>
-            <p className="mb-2 text-center text-sm text-zinc-400">
-              已创建 {myRooms.length} / 10 个
-              {!canCreateMore ? '（已达上限）' : ''}
-            </p>
-            {listErr ? <p className="mb-4 max-w-sm text-center text-sm text-red-400">{listErr}</p> : null}
-            <button
-              type="button"
-              disabled={!canCreateMore}
-              onClick={() => {
-                setErr('')
-                setCreateOpen(true)
-              }}
-              className="w-full max-w-sm rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              创建房间
-            </button>
-            {!listErr ? (
-              <p className="mt-4 text-center text-sm text-zinc-500">暂无房间，请先创建</p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="px-3 pb-8 pt-14 sm:px-4">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h1 className="mb-1 text-xl font-semibold">{bUsername || '房主'}的房间</h1>
-                <p className="text-sm text-zinc-400">
-                  已创建 {myRooms.length} / 10 个
-                  {!canCreateMore ? '（已达上限）' : ''}
-                </p>
-              </div>
-              <div
-                className="flex shrink-0 flex-col items-end gap-1 text-[10px] leading-tight text-zinc-400"
-                aria-label="房间状态说明"
-              >
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-500" />
-                  未开局
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
-                  进行中
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
-                  待公布
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
-                  待解散
-                </span>
-              </div>
+        <div className="flex-1 overflow-y-auto px-3 pb-28 pt-14 sm:px-4">
+          {emptyLobby ? (
+            <div className="flex flex-col items-center px-2 pt-6">
+              <h1 className="mb-1 text-center text-xl font-semibold">
+                {bUsername || '房主'}的房间
+              </h1>
+              <p className="mb-2 text-center text-sm text-zinc-400">
+                已创建 {myRooms.length} / 10 个
+                {!canCreateMore ? '（已达上限）' : ''}
+              </p>
+              {listErr ? <p className="mb-4 max-w-sm text-center text-sm text-red-400">{listErr}</p> : null}
+              {!listErr ? (
+                <p className="mt-2 text-center text-sm text-zinc-500">暂无房间，请先点击下方创建</p>
+              ) : null}
             </div>
-            {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
-            <div className="grid grid-cols-2 gap-3">
-              {myRooms.map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => enterRoom(r.id)}
-                  className={lobbyRoomCardClass()}
+          ) : (
+            <div>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="mb-1 text-xl font-semibold">{bUsername || '房主'}的房间</h1>
+                  <p className="text-sm text-zinc-400">
+                    已创建 {myRooms.length} / 10 个
+                    {!canCreateMore ? '（已达上限）' : ''}
+                  </p>
+                </div>
+                <div
+                  className="flex shrink-0 flex-col items-end gap-1 text-[10px] leading-tight text-zinc-400"
+                  aria-label="房间状态说明"
                 >
-                  <span
-                    className={`absolute right-3 top-3 h-2.5 w-2.5 shrink-0 rounded-full ${lobbyRoomDotClass(r)}`}
-                    aria-hidden
-                  />
-                  <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
-                  <span className="mt-2 text-xs text-zinc-400">
-                    {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-zinc-500" />
+                    未开局
                   </span>
-                  <span className="mt-1 text-xs text-zinc-500">
-                    {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                    进行中
                   </span>
-                </button>
-              ))}
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                    待公布
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-red-500" />
+                    待解散
+                  </span>
+                </div>
+              </div>
+              {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
+              <div className="grid grid-cols-2 gap-3">
+                {myRooms.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => enterRoom(r.id)}
+                    className={lobbyRoomCardClass()}
+                  >
+                    <span
+                      className={`absolute right-3 top-3 h-2.5 w-2.5 shrink-0 rounded-full ${lobbyRoomDotClass(r)}`}
+                      aria-hidden
+                    />
+                    <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
+                    <span className="mt-2 text-xs text-zinc-400">
+                      {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
+                    </span>
+                    <span className="mt-1 text-xs text-zinc-500">
+                      {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <button
-              type="button"
-              disabled={!canCreateMore}
-              onClick={() => {
-                setErr('')
-                setCreateOpen(true)
-              }}
-              className="mt-6 w-full rounded-lg bg-amber-600 py-3 font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              创建房间
-            </button>
-          </div>
-        )}
+          )}
+        </div>
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-zinc-800 bg-zinc-950/95 px-4 pt-3 backdrop-blur-sm sm:left-1/2 sm:max-w-lg sm:-translate-x-1/2 sm:px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            disabled={!canCreateMore}
+            onClick={() => {
+              setErr('')
+              setCreateOpen(true)
+            }}
+            className="w-full rounded-lg bg-amber-600 py-3.5 text-base font-medium hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            创建房间
+          </button>
+        </div>
 
         {createOpen ? (
           <div

@@ -17,7 +17,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <div className="pointer-events-none fixed bottom-3 left-3 z-[60] text-[11px] font-medium text-zinc-400">
-        V1.0.25
+        V1.0.26
       </div>
     </>
   )
