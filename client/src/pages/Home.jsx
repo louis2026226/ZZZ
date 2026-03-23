@@ -9,13 +9,13 @@ export default function Home() {
           className="rounded-lg bg-amber-600 px-6 py-3 text-center font-medium hover:bg-amber-500"
           to="/login/b"
         >
-          B 端登录（管理员）
+          管理员
         </Link>
         <Link
           className="rounded-lg bg-emerald-600 px-6 py-3 text-center font-medium hover:bg-emerald-500"
           to="/login/c"
         >
-          C 端登录（玩家）
+          玩家
         </Link>
       </div>
     </div>
