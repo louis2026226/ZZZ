@@ -6,11 +6,15 @@ import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 
-function pickRandomAmounts() {
+function pickRandomAmounts(maxBet) {
+  const n = Number(maxBet)
+  if (!Number.isFinite(n) || n < 10) return []
+  const cap = Math.floor(n / 5) * 5
+  if (cap < 10) return []
   const pool = []
-  for (let i = 5; i <= 200; i += 5) pool.push(i)
-  const shuffled = pool.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, 10).sort((a, b) => a - b)
+  for (let i = 10; i <= cap; i += 5) pool.push(i)
+  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(10, pool.length)).sort((a, b) => a - b)
 }
 
 export default function PlayerRoom() {
@@ -25,7 +29,7 @@ export default function PlayerRoom() {
   const [timerTotal, setTimerTotal] = useState(30)
   const [selectedNums, setSelectedNums] = useState([])
   const [pickedAmount, setPickedAmount] = useState(null)
-  const [amounts, setAmounts] = useState(() => pickRandomAmounts())
+  const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [alertText, setAlertText] = useState('')
   const [joinErr, setJoinErr] = useState('')
   const [playerCount, setPlayerCount] = useState(0)
@@ -35,8 +39,8 @@ export default function PlayerRoom() {
   const username = sessionStorage.getItem('cUser') || ''
 
   const refreshAmounts = useCallback(() => {
-    setAmounts(pickRandomAmounts())
-  }, [])
+    setAmounts(pickRandomAmounts(maxBet))
+  }, [maxBet])
 
   useEffect(() => {
     const cUser = sessionStorage.getItem('cUser')
@@ -60,6 +64,7 @@ export default function PlayerRoom() {
       setRoomId(res.room.id)
       setMessages(res.room.messages || [])
       setMaxBet(res.room.maxBet || 0)
+      setAmounts(pickRandomAmounts(res.room.maxBet || 0))
       if (res.room.currentRound != null) setCurrentRound(res.room.currentRound)
       if (res.room.totalRounds != null) setTotalRoundsState(res.room.totalRounds)
       if (res.room.phase) setPhase(res.room.phase)
@@ -159,7 +164,6 @@ export default function PlayerRoom() {
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
       <div className="mb-4 shrink-0">
-        <p className="mb-2 text-sm text-zinc-400">信息展示</p>
         <MessageBoard messages={messages} className={boardClass} />
       </div>
 
@@ -192,7 +196,7 @@ export default function PlayerRoom() {
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-zinc-400">随机米（点选其一，从小到大）</p>
+          <p className="mb-2 text-sm text-zinc-400">随机米</p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a) => (
               <button

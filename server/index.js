@@ -346,7 +346,7 @@ io.on('connection', (socket) => {
     const uniq = [...new Set(nums)]
     if (uniq.length === 0 || uniq.length > 2) return
     const amt = Number(amount)
-    if (!amt || amt > room.maxBet) return
+    if (!amt || amt < 10 || amt > room.maxBet || amt % 5 !== 0) return
     room.playerBets.set(socket.id, { username, numbers: uniq, amount: amt })
     const msg = `【下注】${username} | 选号 ${uniq.join(',')} | 金额 ${amt}`
     addMessage(room, msg)

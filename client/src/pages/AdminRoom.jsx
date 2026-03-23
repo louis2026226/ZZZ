@@ -6,11 +6,15 @@ import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 
-function pickRandomAmounts() {
+function pickRandomAmounts(maxBet) {
+  const n = Number(maxBet)
+  if (!Number.isFinite(n) || n < 10) return []
+  const cap = Math.floor(n / 5) * 5
+  if (cap < 10) return []
   const pool = []
-  for (let i = 5; i <= 200; i += 5) pool.push(i)
-  const shuffled = pool.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, 10).sort((a, b) => a - b)
+  for (let i = 10; i <= cap; i += 5) pool.push(i)
+  const shuffled = [...pool].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(10, pool.length)).sort((a, b) => a - b)
 }
 
 export default function AdminRoom() {
@@ -33,7 +37,7 @@ export default function AdminRoom() {
   const [err, setErr] = useState('')
   const [selectedNums, setSelectedNums] = useState([])
   const [pickedAmount, setPickedAmount] = useState(null)
-  const [amounts, setAmounts] = useState(() => pickRandomAmounts())
+  const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [betAlert, setBetAlert] = useState('')
   const [hostUsername, setHostUsername] = useState('')
   const hostUsernameRef = useRef('')
@@ -42,8 +46,9 @@ export default function AdminRoom() {
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
 
   const refreshAmounts = useCallback(() => {
-    setAmounts(pickRandomAmounts())
-  }, [])
+    const cap = maxBetState > 0 ? maxBetState : maxBet
+    setAmounts(pickRandomAmounts(cap))
+  }, [maxBetState, maxBet])
 
   useEffect(() => {
     hostUsernameRef.current = hostUsername
@@ -82,6 +87,7 @@ export default function AdminRoom() {
           return
         }
         applyRoom(res.room)
+        setAmounts(pickRandomAmounts(res.room.maxBet))
       })
     } else {
       setCreating(true)
@@ -157,6 +163,7 @@ export default function AdminRoom() {
         setCurrentRound(res.room.currentRound ?? 0)
         setHostUsername(res.room.adminUsername || bUser || '')
         setPlayerCount(0)
+        setAmounts(pickRandomAmounts(res.room.maxBet))
       }
     )
   }
@@ -289,20 +296,10 @@ export default function AdminRoom() {
       />
 
       <div className="mb-4 shrink-0">
-        <p className="mb-2 text-sm text-zinc-400">信息展示</p>
         <div className="relative">
           <MessageBoard messages={messages} className={boardClass} />
           {isHost && !gameEnded ? (
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-end gap-2 p-2">
-              {canStart ? (
-                <button
-                  type="button"
-                  onClick={onStart}
-                  className="pointer-events-auto rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium shadow-lg hover:bg-amber-500"
-                >
-                  开始
-                </button>
-              ) : null}
               {showSettleBtn ? (
                 <button
                   type="button"
@@ -346,7 +343,7 @@ export default function AdminRoom() {
         </div>
 
         <div>
-          <p className="mb-2 text-sm text-zinc-400">随机米（点选其一，从小到大）</p>
+          <p className="mb-2 text-sm text-zinc-400">随机米</p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a) => (
               <button
@@ -371,6 +368,15 @@ export default function AdminRoom() {
         {betAlert ? <p className="text-sm text-red-400">{betAlert}</p> : null}
 
         <div className="flex gap-2">
+          {isHost && !gameEnded && canStart ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="shrink-0 rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
+            >
+              开始
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={!betting}
