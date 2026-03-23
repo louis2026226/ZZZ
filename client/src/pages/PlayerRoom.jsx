@@ -129,6 +129,11 @@ export default function PlayerRoom() {
     setAmounts(pickRandomAmounts(maxBet))
   }, [maxBet])
 
+  const maxBetRef = useRef(0)
+  useEffect(() => {
+    maxBetRef.current = maxBet
+  }, [maxBet])
+
   useEffect(() => {
     const cUser = sessionStorage.getItem('cUser')
     const rid = sessionStorage.getItem('cRoomId')
@@ -169,7 +174,7 @@ export default function PlayerRoom() {
       setPhase('betting')
       setNumPick(emptyNumPick())
       setPickedAmount(null)
-      refreshAmounts()
+      setAmounts(pickRandomAmounts(maxBetRef.current))
     })
     s.on('timer', ({ left, total }) => {
       setTimerLeft(left)
@@ -206,7 +211,7 @@ export default function PlayerRoom() {
       s.disconnect()
       socketRef.current = null
     }
-  }, [nav, refreshAmounts])
+  }, [nav])
 
   const betting = phase === 'betting' && timerLeft > 0
   const showTimer = phase === 'betting' && timerLeft > 0

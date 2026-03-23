@@ -168,6 +168,11 @@ export default function AdminRoom() {
     setAmounts(pickRandomAmounts(cap))
   }, [maxBetState, maxBet])
 
+  const betCapRef = useRef(0)
+  useEffect(() => {
+    betCapRef.current = maxBetState > 0 ? maxBetState : maxBet
+  }, [maxBetState, maxBet])
+
   useEffect(() => {
     hostUsernameRef.current = hostUsername
   }, [hostUsername])
@@ -250,7 +255,7 @@ export default function AdminRoom() {
         setSettleOpen(false)
         setNumPick(emptyNumPick())
         setPickedAmount(null)
-        refreshAmounts()
+        setAmounts(pickRandomAmounts(betCapRef.current))
       })
       s.on('roundClosed', () => {
         setPhase('closed')
@@ -297,7 +302,7 @@ export default function AdminRoom() {
       s.disconnect()
       socketRef.current = null
     }
-  }, [inRoomId, nav, refreshAmounts])
+  }, [inRoomId, nav])
 
   function fetchMyRooms() {
     const bUser = sessionStorage.getItem('bUser')
