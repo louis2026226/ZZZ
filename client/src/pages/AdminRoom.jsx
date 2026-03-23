@@ -17,6 +17,32 @@ function pickRandomAmounts(maxBet) {
   return shuffled.slice(0, Math.min(10, pool.length)).sort((a, b) => a - b)
 }
 
+const STATS_PREFIX = '【本局统计】'
+
+function buildPersonalRecords(messages, uname) {
+  if (!uname) return []
+  const records = []
+  let round = 0
+  for (const m of messages || []) {
+    if (!m?.text || m.divider) continue
+    const t = m.text
+    if (!t.startsWith(STATS_PREFIX)) continue
+    round += 1
+    const rest = t.slice(STATS_PREFIX.length)
+    if (!rest.trim()) continue
+    for (const piece of rest.split('；')) {
+      const segs = piece.trim().split(' | ')
+      if (segs.length < 3 || segs[0] !== uname) continue
+      const label = segs[1]
+      const amt = Number(segs[2])
+      if (label !== '赢' && label !== '输') continue
+      const delta = label === '赢' ? amt : -amt
+      records.push({ round, label, amt, delta })
+    }
+  }
+  return records
+}
+
 export default function AdminRoom() {
   const nav = useNavigate()
   const socketRef = useRef(null)
@@ -41,9 +67,15 @@ export default function AdminRoom() {
   const [betAlert, setBetAlert] = useState('')
   const [hostUsername, setHostUsername] = useState('')
   const hostUsernameRef = useRef('')
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
+  const personalRecords = useMemo(() => buildPersonalRecords(messages, bUsername), [messages, bUsername])
+  const personalTotal = useMemo(
+    () => personalRecords.reduce((s, r) => s + r.delta, 0),
+    [personalRecords]
+  )
 
   const refreshAmounts = useCallback(() => {
     const cap = maxBetState > 0 ? maxBetState : maxBet
@@ -287,7 +319,7 @@ export default function AdminRoom() {
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} />
-      <LogoutButton socketRef={socketRef} />
+      <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}
@@ -430,6 +462,52 @@ export default function AdminRoom() {
               }}
             >
               取消
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {statsOpen ? (
+        <div
+          className="fixed inset-0 z-[55] flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setStatsOpen(false)}
+        >
+          <div
+            className="max-h-[75dvh] w-full max-w-sm overflow-y-auto rounded-xl border border-zinc-600 bg-zinc-900 p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-lg font-semibold">我的战绩</h3>
+            {personalRecords.length === 0 ? (
+              <p className="text-sm text-zinc-400">暂无下注结算记录</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {personalRecords.map((r, i) => (
+                  <li key={`${r.round}-${i}`} className="rounded-lg bg-zinc-800/80 px-3 py-2">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-zinc-400">第 {r.round} 局</span>
+                      <span>{r.label}</span>
+                    </div>
+                    <div className="mt-1 flex justify-between gap-2 text-zinc-300">
+                      <span>下注 {r.amt}</span>
+                      <span className={r.delta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                        本局 {r.delta >= 0 ? '+' : ''}
+                        {r.delta}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-4 text-base font-semibold">
+              总输赢 {personalTotal >= 0 ? '+' : ''}
+              {personalTotal}
+            </p>
+            <button
+              type="button"
+              className="mt-4 w-full rounded-lg border border-zinc-600 py-2 text-sm"
+              onClick={() => setStatsOpen(false)}
+            >
+              关闭
             </button>
           </div>
         </div>

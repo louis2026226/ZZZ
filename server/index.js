@@ -132,7 +132,7 @@ function settleRound(room, drawNumber) {
     const label = win ? '赢' : '输'
     const amt = bet.amount
     lines.push(`${bet.username} | ${label} | ${amt}`)
-    addMessage(room, `【结算】${bet.username} | ${label} | 金额 ${amt}`)
+    addMessage(room, `【结算】${bet.username} | ${label} | ${amt}`)
   }
   if (lines.length === 0) {
     addMessage(room, '【结算】本局无人下注。')

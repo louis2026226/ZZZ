@@ -1,7 +1,7 @@
 import { LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-export default function LogoutButton({ socketRef }) {
+export default function LogoutButton({ socketRef, onStatsClick }) {
   const nav = useNavigate()
 
   function onLogout() {
@@ -17,13 +17,24 @@ export default function LogoutButton({ socketRef }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={onLogout}
-      className="fixed left-3 top-3 z-50 flex items-center gap-1 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
-    >
-      <LogOut className="h-4 w-4" />
-      退出
-    </button>
+    <div className="fixed left-3 top-3 z-50 flex gap-2">
+      <button
+        type="button"
+        onClick={onLogout}
+        className="flex items-center gap-1 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
+      >
+        <LogOut className="h-4 w-4" />
+        退出
+      </button>
+      {onStatsClick ? (
+        <button
+          type="button"
+          onClick={onStatsClick}
+          className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
+        >
+          战绩
+        </button>
+      ) : null}
+    </div>
   )
 }
