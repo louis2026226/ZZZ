@@ -223,6 +223,24 @@ function listRoomsPayloadForAdmin(adminUsername) {
   return out
 }
 
+function dismissRoom(room) {
+  if (!room) return
+  clearRoomTimers(room)
+  const rid = room.id
+  const key = roomKey(rid)
+  broadcastRoom(room, 'roomDismissed', { roomId: rid })
+  const socketIds = [...room.sockets.keys()]
+  rooms.delete(String(rid))
+  for (const sid of socketIds) {
+    const sock = io.sockets.sockets.get(sid)
+    if (sock) {
+      sock.leave(key)
+      delete sock.data.roomId
+      delete sock.data.role
+    }
+  }
+}
+
 app.get('/health', (_, res) => res.json({ ok: true }))
 
 const distPath = path.join(__dirname, '..', 'client', 'dist')
@@ -424,6 +442,27 @@ io.on('connection', (socket) => {
     clearRoomTimers(room)
     settleRound(room, n)
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+  })
+
+  socket.on('b_dismiss_room', (cb) => {
+    if (typeof cb !== 'function') return
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room || socket.data.role !== 'B') {
+      cb({ ok: false, error: '无权限' })
+      return
+    }
+    const info = room.sockets.get(socket.id)
+    if (!info || info.username !== room.adminUsername) {
+      cb({ ok: false, error: '无权限' })
+      return
+    }
+    if (!room.gameEnded) {
+      cb({ ok: false, error: '须打完总局数后才可解散' })
+      return
+    }
+    dismissRoom(room)
+    cb({ ok: true })
   })
 
   socket.on('disconnect', () => {

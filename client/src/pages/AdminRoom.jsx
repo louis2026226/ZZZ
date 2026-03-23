@@ -288,6 +288,19 @@ export default function AdminRoom() {
     setSettleOpen(false)
   }
 
+  function onDismiss() {
+    setErr('')
+    const s = socketRef.current
+    if (!s) return
+    s.emit('b_dismiss_room', (res) => {
+      if (!res?.ok) {
+        setErr(res?.error || '解散失败')
+        return
+      }
+      backToLobby()
+    })
+  }
+
   const showTimer = phase === 'betting' && timerLeft > 0
   const betting = phase === 'betting' && timerLeft > 0
   const nums = useMemo(() => [1, 2, 3, 4], [])
@@ -570,29 +583,40 @@ export default function AdminRoom() {
 
         <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} inline />
         <div className="flex gap-2">
-          {isHost && !gameEnded && canStart ? (
-            <button
-              type="button"
-              onClick={onStart}
-              className="shrink-0 rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
-            >
-              开始
-            </button>
-          ) : null}
-          {isHost && !gameEnded ? (
-            <button
-              type="button"
-              disabled={!announceActive}
-              onClick={() => setSettleOpen(true)}
-              className={`shrink-0 rounded-lg px-4 py-3 text-sm font-medium ${
-                announceActive
-                  ? 'bg-amber-500 text-white shadow-md hover:bg-amber-400'
-                  : 'cursor-not-allowed bg-zinc-800 text-zinc-500 opacity-70'
-              }`}
-            >
-              公布
-            </button>
-          ) : null}
+          <div className="flex shrink-0 gap-2">
+            {isHost && !gameEnded && canStart ? (
+              <button
+                type="button"
+                onClick={onStart}
+                className="rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
+              >
+                开始
+              </button>
+            ) : null}
+            {isHost && !gameEnded ? (
+              <button
+                type="button"
+                disabled={!announceActive}
+                onClick={() => setSettleOpen(true)}
+                className={`rounded-lg px-4 py-3 text-sm font-medium ${
+                  announceActive
+                    ? 'bg-amber-500 text-white shadow-md hover:bg-amber-400'
+                    : 'cursor-not-allowed bg-zinc-800 text-zinc-500 opacity-70'
+                }`}
+              >
+                公布
+              </button>
+            ) : null}
+            {isHost && gameEnded ? (
+              <button
+                type="button"
+                onClick={onDismiss}
+                className="rounded-lg bg-red-700 px-4 py-3 text-sm font-medium hover:bg-red-600"
+              >
+                解散
+              </button>
+            ) : null}
+          </div>
           <button
             type="button"
             disabled={!betting}
