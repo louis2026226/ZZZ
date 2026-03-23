@@ -16,8 +16,8 @@ export default function App() {
         <Route path="/c/play" element={<PlayerRoom />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <div className="pointer-events-none fixed bottom-3 left-3 z-40 text-[10px] text-zinc-600">
-        V1.0.1
+      <div className="pointer-events-none fixed bottom-3 left-3 z-[60] text-[11px] font-medium text-zinc-400">
+        V1.0.2
       </div>
     </>
   )

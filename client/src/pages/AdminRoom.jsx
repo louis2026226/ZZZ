@@ -268,11 +268,13 @@ export default function AdminRoom() {
 
       <div className="mb-4 shrink-0">
         <p className="mb-2 text-sm text-zinc-400">信息展示</p>
-        <div className="relative w-full">
-          <MessageBoard messages={messages} />
-          <div className="pointer-events-none absolute bottom-2 right-2 z-10 text-right text-[10px] leading-tight text-zinc-500">
+        <div className="flex items-stretch gap-3">
+          <div className="min-h-0 min-w-0 flex-1">
+            <MessageBoard messages={messages} />
+          </div>
+          <div className="flex w-[4.5rem] shrink-0 flex-col justify-end text-right text-[10px] text-zinc-500">
             <div>局数</div>
-            <div className="text-sm font-bold text-amber-400">
+            <div className="text-base font-bold leading-tight text-amber-400">
               {currentRound}/{totalRoundsState || '-'}
             </div>
           </div>
