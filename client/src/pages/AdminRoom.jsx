@@ -35,12 +35,19 @@ export default function AdminRoom() {
   const [pickedAmount, setPickedAmount] = useState(null)
   const [amounts, setAmounts] = useState(() => pickRandomAmounts())
   const [betAlert, setBetAlert] = useState('')
+  const [hostUsername, setHostUsername] = useState('')
+  const hostUsernameRef = useRef('')
 
   const bUsername = sessionStorage.getItem('bUser') || ''
+  const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
 
   const refreshAmounts = useCallback(() => {
     setAmounts(pickRandomAmounts())
   }, [])
+
+  useEffect(() => {
+    hostUsernameRef.current = hostUsername
+  }, [hostUsername])
 
   useEffect(() => {
     const bUser = sessionStorage.getItem('bUser')
@@ -60,6 +67,7 @@ export default function AdminRoom() {
       setTotalRoundsState(r.totalRounds)
       setMaxBetState(r.maxBet)
       setCurrentRound(r.currentRound ?? 0)
+      if (r.adminUsername) setHostUsername(r.adminUsername)
       if (r.phase) setPhase(r.phase)
       if (r.gameEnded) setGameEnded(true)
     }
@@ -84,6 +92,7 @@ export default function AdminRoom() {
       setPlayerCount(st.playerCount ?? 0)
       setCurrentRound(st.currentRound ?? 0)
       setTotalRoundsState(st.totalRounds ?? 0)
+      if (st.adminUsername) setHostUsername(st.adminUsername)
       if (st.phase) setPhase(st.phase)
       if (st.gameEnded) setGameEnded(true)
     })
@@ -101,7 +110,9 @@ export default function AdminRoom() {
     s.on('roundClosed', () => {
       setPhase('closed')
       setTimerLeft(0)
-      setSettleOpen(true)
+      const bu = sessionStorage.getItem('bUser') || ''
+      const host = hostUsernameRef.current
+      if (bu && host && bu === host) setSettleOpen(true)
     })
     s.on('newRoundWait', (p) => {
       setPhase('idle')
@@ -144,6 +155,7 @@ export default function AdminRoom() {
         setTotalRoundsState(res.room.totalRounds)
         setMaxBetState(res.room.maxBet)
         setCurrentRound(res.room.currentRound ?? 0)
+        setHostUsername(res.room.adminUsername || bUser || '')
         setPlayerCount(0)
       }
     )
@@ -360,7 +372,7 @@ export default function AdminRoom() {
       <div className="flex flex-1 flex-col items-center justify-center gap-6">
         {gameEnded ? (
           <p className="text-lg text-amber-300">游戏结束</p>
-        ) : (
+        ) : isHost ? (
           <button
             type="button"
             disabled={phase === 'betting' || phase === 'closed'}
@@ -369,14 +381,14 @@ export default function AdminRoom() {
           >
             开始
           </button>
-        )}
+        ) : null}
 
         {maxBetState ? (
           <p className="text-xs text-zinc-500">单注上限：{maxBetState}</p>
         ) : null}
       </div>
 
-      {settleOpen ? (
+      {settleOpen && isHost ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-sm space-y-4 rounded-xl border border-zinc-600 bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold">选择开奖数字</h3>

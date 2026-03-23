@@ -89,6 +89,18 @@ function playerCount(room) {
   return n
 }
 
+function roomStatsPayload(room) {
+  return {
+    roomId: room.id,
+    playerCount: playerCount(room),
+    currentRound: room.currentRound,
+    totalRounds: room.totalRounds,
+    phase: room.phase,
+    gameEnded: room.gameEnded,
+    adminUsername: room.adminUsername,
+  }
+}
+
 function resetRoundBets(room) {
   room.playerBets.clear()
 }
@@ -225,6 +237,7 @@ io.on('connection', (socket) => {
       ok: true,
       room: {
         id: room.id,
+        adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
         currentRound: room.currentRound,
@@ -244,18 +257,12 @@ io.on('connection', (socket) => {
     room.sockets.set(socket.id, { role: 'B', username })
     socket.data.roomId = room.id
     socket.data.role = 'B'
-    socket.emit('roomStats', {
-      roomId: room.id,
-      playerCount: playerCount(room),
-      currentRound: room.currentRound,
-      totalRounds: room.totalRounds,
-      phase: room.phase,
-      gameEnded: room.gameEnded,
-    })
+    socket.emit('roomStats', roomStatsPayload(room))
     cb({
       ok: true,
       room: {
         id: room.id,
+        adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
         currentRound: room.currentRound,
@@ -279,18 +286,12 @@ io.on('connection', (socket) => {
     socket.data.role = 'C'
     addMessage(room, `【系统】玩家 ${username} 进入房间。`)
     broadcastRoom(room, 'messages', { list: room.messages })
-    broadcastRoom(room, 'roomStats', {
-      roomId: room.id,
-      playerCount: playerCount(room),
-      currentRound: room.currentRound,
-      totalRounds: room.totalRounds,
-      phase: room.phase,
-      gameEnded: room.gameEnded,
-    })
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     cb({
       ok: true,
       room: {
         id: room.id,
+        adminUsername: room.adminUsername,
         totalRounds: room.totalRounds,
         maxBet: room.maxBet,
         currentRound: room.currentRound,
@@ -305,6 +306,8 @@ io.on('connection', (socket) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room || socket.data.role !== 'B') return
+    const info = room.sockets.get(socket.id)
+    if (!info || info.username !== room.adminUsername) return
     if (room.gameEnded) return
     if (room.phase === 'betting') return
     if (room.currentRound >= room.totalRounds) return
@@ -314,14 +317,7 @@ io.on('connection', (socket) => {
     addMessage(room, '【系统】游戏开始，请玩家在 30 秒内完成下注。')
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'gameStart', {})
-    broadcastRoom(room, 'roomStats', {
-      roomId: room.id,
-      playerCount: playerCount(room),
-      currentRound: room.currentRound,
-      totalRounds: room.totalRounds,
-      phase: 'betting',
-      gameEnded: room.gameEnded,
-    })
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     startBettingTimer(room)
   })
 
@@ -345,19 +341,14 @@ io.on('connection', (socket) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room || socket.data.role !== 'B') return
+    const info = room.sockets.get(socket.id)
+    if (!info || info.username !== room.adminUsername) return
     if (room.phase !== 'closed') return
     const n = Number(drawNumber)
     if (n < 1 || n > 4) return
     clearRoomTimers(room)
     settleRound(room, n)
-    broadcastRoom(room, 'roomStats', {
-      roomId: room.id,
-      playerCount: playerCount(room),
-      currentRound: room.currentRound,
-      totalRounds: room.totalRounds,
-      phase: room.phase,
-      gameEnded: room.gameEnded,
-    })
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
   })
 
   socket.on('disconnect', () => {
@@ -371,14 +362,7 @@ io.on('connection', (socket) => {
       addMessage(room, `【系统】玩家 ${info.username} 离开房间。`)
       broadcastRoom(room, 'messages', { list: room.messages })
     }
-    broadcastRoom(room, 'roomStats', {
-      roomId: room.id,
-      playerCount: playerCount(room),
-      currentRound: room.currentRound,
-      totalRounds: room.totalRounds,
-      phase: room.phase,
-      gameEnded: room.gameEnded,
-    })
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
   })
 })
 
