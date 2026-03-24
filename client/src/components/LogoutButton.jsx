@@ -1,5 +1,6 @@
 import { LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { playSound } from '../utils/sound.js'
 
 export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby }) {
   const nav = useNavigate()
@@ -20,7 +21,7 @@ export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby })
     <div className="fixed left-3 top-3 z-50 flex gap-2">
       <button
         type="button"
-        onClick={onLogout}
+        onClick={() => { playSound('button'); onLogout() }}
         className="flex items-center gap-1 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
       >
         <LogOut className="h-4 w-4" />
@@ -29,7 +30,7 @@ export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby })
       {onStatsClick ? (
         <button
           type="button"
-          onClick={onStatsClick}
+          onClick={() => { playSound('button'); onStatsClick() }}
           className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
         >
           战绩
@@ -38,7 +39,7 @@ export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby })
       {onBackToLobby ? (
         <button
           type="button"
-          onClick={onBackToLobby}
+          onClick={() => { playSound('button'); onBackToLobby() }}
           className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
         >
           返回大厅

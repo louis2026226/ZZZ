@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createSocket, resolveMainSocketOrigin } from '../socket.js'
+import { playSound } from '../utils/sound.js'
 
 export default function SuperAdminLogin() {
   const nav = useNavigate()
@@ -60,6 +61,7 @@ export default function SuperAdminLogin() {
         {err ? <p className="text-sm text-red-400">{err}</p> : null}
         <button
           type="submit"
+          onClick={() => playSound('button')}
           className="w-full rounded-lg bg-amber-600 py-2 font-medium hover:bg-amber-500"
         >
           登录

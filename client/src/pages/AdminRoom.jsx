@@ -390,6 +390,7 @@ export default function AdminRoom() {
   }
 
   function onChooseDraw(n) {
+    sound('button')
     setErr('')
     socketRef.current?.emit('b_settle', { drawNumber: n })
     setSettleOpen(false)
@@ -574,7 +575,7 @@ export default function AdminRoom() {
                   <button
                     key={r.id}
                     type="button"
-                    onClick={() => enterRoom(r.id)}
+                    onClick={() => { sound('button'); enterRoom(r.id) }}
                     className={lobbyRoomCardClass()}
                   >
                     <span
@@ -599,6 +600,7 @@ export default function AdminRoom() {
             type="button"
             disabled={!canCreateMore}
             onClick={() => {
+              sound('button')
               setErr('')
               setCreateOpen(true)
             }}
@@ -629,7 +631,7 @@ export default function AdminRoom() {
                     <button
                       key={n}
                       type="button"
-                      onClick={() => setTotalRounds(n)}
+                      onClick={() => { sound('button'); setTotalRounds(n) }}
                       className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
                         totalRounds === n
                           ? 'border-amber-500 bg-amber-600 text-white'
@@ -646,7 +648,7 @@ export default function AdminRoom() {
                   <div className="mt-2 flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setTimerEnabled(false)}
+                      onClick={() => { sound('button'); setTimerEnabled(false) }}
                       className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
                         !timerEnabled
                           ? 'border-amber-500 bg-amber-600 text-white'
@@ -657,7 +659,7 @@ export default function AdminRoom() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setTimerEnabled(true)}
+                      onClick={() => { sound('button'); setTimerEnabled(true) }}
                       className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
                         timerEnabled
                           ? 'border-amber-500 bg-amber-600 text-white'
@@ -676,7 +678,7 @@ export default function AdminRoom() {
                         <button
                           key={n}
                           type="button"
-                          onClick={() => setBetSeconds(n)}
+                          onClick={() => { sound('button'); setBetSeconds(n) }}
                           className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
                             betSeconds === n
                               ? 'border-amber-500 bg-amber-600 text-white'
@@ -694,7 +696,7 @@ export default function AdminRoom() {
                 <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
                   <button
                     type="button"
-                    onClick={() => setMaxBet((v) => Math.max(200, v - 200))}
+                    onClick={() => { sound('button'); setMaxBet((v) => Math.max(200, v - 200)) }}
                     disabled={maxBet <= 200}
                     className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400 disabled:cursor-not-allowed disabled:opacity-40"
                   >
@@ -706,7 +708,7 @@ export default function AdminRoom() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setMaxBet((v) => v + 200)}
+                    onClick={() => { sound('button'); setMaxBet((v) => v + 200) }}
                     className="min-w-[3rem] bg-zinc-500 text-xl font-medium text-zinc-100 hover:bg-zinc-400"
                   >
                     +
@@ -718,6 +720,7 @@ export default function AdminRoom() {
                 <button
                   type="button"
                   onClick={() => {
+                    sound('button')
                     setCreateOpen(false)
                     setErr('')
                   }}
@@ -727,6 +730,7 @@ export default function AdminRoom() {
                 </button>
                 <button
                   type="submit"
+                  onClick={() => sound('button')}
                   className="flex-1 rounded-lg bg-amber-600 py-2 font-medium hover:bg-amber-500"
                 >
                   创建
@@ -1015,7 +1019,7 @@ export default function AdminRoom() {
             <button
               type="button"
               className="mt-4 w-full rounded-lg border border-zinc-600 py-2 text-sm"
-              onClick={() => setStatsOpen(false)}
+              onClick={() => { sound('button'); setStatsOpen(false) }}
             >
               关闭
             </button>

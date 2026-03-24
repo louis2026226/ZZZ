@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { playSound } from '../utils/sound.js'
 
 export default function Home() {
   return (
@@ -8,12 +9,14 @@ export default function Home() {
         <Link
           className="rounded-lg bg-amber-600 px-6 py-3 text-center font-medium hover:bg-amber-500"
           to="/login/b"
+          onClick={() => playSound('button')}
         >
           管理员
         </Link>
         <Link
           className="rounded-lg bg-emerald-600 px-6 py-3 text-center font-medium hover:bg-emerald-500"
           to="/login/c"
+          onClick={() => playSound('button')}
         >
           玩家
         </Link>

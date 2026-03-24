@@ -409,7 +409,7 @@ export default function PlayerRoom() {
                   key={String(item.value)}
                   type="button"
                   disabled={numDisabled}
-                  onClick={() => toggleNum(item.value)}
+                  onClick={() => { sound('button'); toggleNum(item.value) }}
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
                     numDisabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
@@ -437,7 +437,7 @@ export default function PlayerRoom() {
                 key={`${idx}-${a}`}
                 type="button"
                 disabled={!betting}
-                onClick={() => setPickedAmount(a)}
+                onClick={() => { sound('button'); setPickedAmount(a) }}
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
                   !betting
                     ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
@@ -453,7 +453,7 @@ export default function PlayerRoom() {
               <button
                 type="button"
                 disabled={!betting}
-                onClick={() => setPickedAmount(customButtonAmount)}
+                onClick={() => { sound('button'); setPickedAmount(customButtonAmount) }}
                 className={`rounded-lg border border-amber-300 px-3 py-2 text-sm font-medium ${
                   !betting
                     ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
@@ -479,7 +479,7 @@ export default function PlayerRoom() {
               <button
                 type="button"
                 disabled={!betting}
-                onClick={onCustomAmountConfirm}
+                onClick={() => { sound('button'); onCustomAmountConfirm() }}
                 className="rounded-lg border border-zinc-500 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 设定
@@ -504,6 +504,7 @@ export default function PlayerRoom() {
             type="button"
             disabled={!betting}
             onClick={() => {
+              sound('button')
               setPickedAmount(null)
               refreshAmounts()
             }}
@@ -568,7 +569,7 @@ export default function PlayerRoom() {
             <button
               type="button"
               className="mt-4 w-full rounded-lg border border-zinc-600 py-2 text-sm"
-              onClick={() => setStatsOpen(false)}
+              onClick={() => { sound('button'); setStatsOpen(false) }}
             >
               关闭
             </button>

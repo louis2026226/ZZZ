@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createSocket } from '../socket.js'
+import { playSound } from '../utils/sound.js'
 
 export default function BLogin() {
   const nav = useNavigate()
@@ -57,12 +58,13 @@ export default function BLogin() {
         {err ? <p className="text-sm text-red-400">{err}</p> : null}
         <button
           type="submit"
+          onClick={() => playSound('button')}
           className="w-full rounded-lg bg-amber-600 py-2 font-medium hover:bg-amber-500"
         >
           登录
         </button>
         <div className="mt-[100px] text-center text-sm text-zinc-500">
-          V1.0.77
+          V1.0.78
         </div>
       </form>
     </div>
