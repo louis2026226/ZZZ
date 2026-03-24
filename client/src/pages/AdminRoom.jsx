@@ -145,6 +145,7 @@ export default function AdminRoom() {
   const [inRoomId, setInRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [myRooms, setMyRooms] = useState([])
   const [listErr, setListErr] = useState('')
+  const [dismissTip, setDismissTip] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [totalRounds, setTotalRounds] = useState(10)
   const [maxBet, setMaxBet] = useState(200)
@@ -312,6 +313,7 @@ export default function AdminRoom() {
       })
     } else {
       setListErr('')
+      setDismissTip('')
       s.emit('b_list_my_rooms', { username: bUser }, (res) => {
         if (!res?.ok) {
           setListErr(res?.error || '加载房间列表失败')
@@ -400,6 +402,7 @@ export default function AdminRoom() {
         setErr(res?.error || '解散失败')
         return
       }
+      setDismissTip('房间已解散')
       backToLobby()
     })
   }
@@ -528,6 +531,7 @@ export default function AdminRoom() {
                 {!canCreateMore ? '（已达上限）' : ''}
               </p>
               {listErr ? <p className="mb-4 max-w-sm text-center text-sm text-red-400">{listErr}</p> : null}
+              {dismissTip ? <p className="mb-4 max-w-sm text-center text-sm text-emerald-400">{dismissTip}</p> : null}
               {!listErr ? (
                 <p className="mt-2 text-center text-sm text-zinc-500">暂无房间，请先点击下方创建</p>
               ) : null}
@@ -565,6 +569,7 @@ export default function AdminRoom() {
                 </div>
               </div>
               {listErr ? <p className="mb-2 text-sm text-red-400">{listErr}</p> : null}
+              {dismissTip ? <p className="mb-2 text-sm text-emerald-400">{dismissTip}</p> : null}
               <div className="grid grid-cols-2 gap-3">
                 {myRooms.map((r) => (
                   <button
