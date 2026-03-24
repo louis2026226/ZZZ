@@ -4,9 +4,14 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'url'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+let __dirname
+try {
+  const { fileURLToPath } = await import('url')
+  __dirname = path.dirname(fileURLToPath(import.meta.url))
+} catch {
+  __dirname = path.dirname('')
+}
 const PORT = Number(process.env.PORT) || 3000
 const _sap = process.env.SUPER_ADMIN_PORT
 let SUPER_ADMIN_PORT
