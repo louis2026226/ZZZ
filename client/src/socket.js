@@ -43,6 +43,6 @@ export function createSocket(baseUrl) {
     import.meta.env.VITE_SOCKET_URL ||
     (typeof window !== 'undefined' ? window.location.origin : '')
   return io(url, {
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
   })
 }

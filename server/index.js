@@ -588,6 +588,7 @@ io.on('connection', (socket) => {
     room.phase = 'closed'
     room.timerLeft = 0
     addMessageImage(room, 'ov.jpg')
+    addMessage(room, `【系统】第 ${room.currentRound} / ${room.totalRounds} 局下注截止，等待管理员公布幸运号。`)
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     broadcastRoom(room, 'roundClosed')
