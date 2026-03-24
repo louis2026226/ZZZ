@@ -124,7 +124,6 @@ function clearEmptyPlayerTimeout(room) {
   }
 }
 
-/** 房间仅在房主主动解散时销毁，断开连接不影响房间状态 */
 function syncEmptyPlayerDestroyTimer(room) {
   if (!room) return
   clearEmptyPlayerTimeout(room)
@@ -142,22 +141,20 @@ function roomStatsPayload(room) {
   }
 }
 
-function resetRoundBets(room) {
-  room.playerBets.clear()
-}
-
-function getSocketBetList(room, sid) {
-  const v = room.playerBets.get(sid)
-  if (v == null) return []
-  return Array.isArray(v) ? v : [v]
-}
-
-function digitKindsUsedBySocket(room, sid) {
-  const s = new Set()
-  for (const b of getSocketBetList(room, sid)) {
-    for (const d of b.numbers) s.add(d)
-  }
-  return s
+function beginBettingRound(room, opts = {}) {
+  if (room.gameEnded) return false
+  if (room.phase === 'betting') return false
+  if (room.currentRound >= room.totalRounds) return false
+  if (room.phase === 'countdown' && !opts.afterCountdown) return false
+  room.currentRound += 1
+  clearRoomTimers(room)
+  resetRoundBets(room)
+  addMessageImage(room, 'be.jpg')
+  addMessage(room, `【系统】游戏开始，请玩家等待管理员公布幸运号。`)
+  startBettingTimer(room)
+  broadcastRoom(room, 'gameStart', {})
+  broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+  return true
 }
 
 function startBettingTimer(room) {
@@ -190,21 +187,34 @@ function startBettingTimer(room) {
   }
 }
 
-function beginBettingRound(room, opts = {}) {
-  if (room.gameEnded) return false
-  if (room.phase === 'betting') return false
-  if (room.currentRound >= room.totalRounds) return false
-  if (room.phase === 'countdown' && !opts.afterCountdown) return false
-  room.currentRound += 1
-  clearRoomTimers(room)
-  resetRoundBets(room)
-  addMessageImage(room, 'be.jpg')
-  addMessage(room, `【系统】游戏开始，请玩家等待管理员公布幸运号。`)
-  broadcastRoom(room, 'messages', { list: room.messages })
-  startBettingTimer(room)
-  broadcastRoom(room, 'gameStart', {})
-  broadcastRoom(room, 'roomStats', roomStatsPayload(room))
-  return true
+function normalizeBetDigit(x) {
+  const d = Number(x)
+  if (d === 1 || d === 2 || d === 3 || d === 4) return d
+  return null
+}
+
+function normalizeLuckyNumber(x) {
+  const d = Number(x)
+  if (d === 1 || d === 2 || d === 3 || d === 4) return d
+  return null
+}
+
+function resetRoundBets(room) {
+  room.playerBets.clear()
+}
+
+function getSocketBetList(room, sid) {
+  const v = room.playerBets.get(sid)
+  if (v == null) return []
+  return Array.isArray(v) ? v : [v]
+}
+
+function digitKindsUsedBySocket(room, sid) {
+  const s = new Set()
+  for (const b of getSocketBetList(room, sid)) {
+    for (const d of b.numbers) s.add(d)
+  }
+  return s
 }
 
 function settleRound(room, drawNumber) {
@@ -248,9 +258,7 @@ function settleRound(room, drawNumber) {
     return
   }
 
-  clearRoomTimers(room)
   room.phase = 'countdown'
-  broadcastRoom(room, 'roomStats', roomStatsPayload(room))
   let t = 3
   broadcastRoom(room, 'nextRoundCountdown', { left: 3 })
   room.countdownIv = setInterval(() => {
@@ -266,11 +274,6 @@ function settleRound(room, drawNumber) {
   }, 1000)
 }
 
-const rooms = new Map()
-const bAccounts = new Map()
-const bStats = new Map()
-const MAX_ROOMS_PER_ADMIN = 10
-
 function ensureBStats(username) {
   if (!bStats.has(username)) {
     bStats.set(username, {
@@ -282,231 +285,91 @@ function ensureBStats(username) {
   }
 }
 
-function serializeBStats(username) {
-  const st = bStats.get(username)
-  if (!st) return { totalRoundsSettled: 0, selfPnL: 0, distinctCCount: 0, cRows: [] }
-  const cRows = []
-  for (const cname of st.cUsers) {
-    cRows.push({ username: cname, pnl: st.cPnL.get(cname) || 0 })
+const rooms = new Map()
+const bStats = new Map()
+
+app.get('/', (req, res) => {
+  const distPath = path.join(__dirname, '..', 'client', 'dist')
+  if (fs.existsSync(distPath)) {
+    res.sendFile(path.join(distPath, 'index.html'))
+  } else {
+    res.send('Server is running. Please connect via WebSocket.')
   }
-  return {
-    totalRoundsSettled: st.totalRoundsSettled,
-    selfPnL: st.selfPnL,
-    distinctCCount: st.cUsers.size,
-    cRows,
-  }
-}
-
-function countAdminRooms(adminUsername) {
-  let n = 0
-  for (const r of rooms.values()) {
-    if (r.adminUsername === adminUsername) n += 1
-  }
-  return n
-}
-
-function listRoomsPayloadForAdmin(adminUsername) {
-  const out = []
-  for (const r of rooms.values()) {
-    if (r.adminUsername !== adminUsername) continue
-    out.push({
-      id: r.id,
-      totalRounds: r.totalRounds,
-      maxBet: r.maxBet,
-      currentRound: r.currentRound,
-      phase: r.phase,
-      gameEnded: r.gameEnded,
-      playerCount: playerCount(r),
-    })
-  }
-  return out
-}
-
-function dismissRoom(room) {
-  if (!room) return
-  clearEmptyPlayerTimeout(room)
-  clearRoomTimers(room)
-  const rid = room.id
-  const key = roomKey(rid)
-  broadcastRoom(room, 'roomDismissed', { roomId: rid })
-  const socketIds = [...room.sockets.keys()]
-  rooms.delete(String(rid))
-  for (const sid of socketIds) {
-    const sock = io.sockets.sockets.get(sid)
-    if (sock) {
-      sock.leave(key)
-      delete sock.data.roomId
-      delete sock.data.role
-    }
-  }
-}
-
-function normalizeLuckyNumber(v) {
-  const n = Number(v)
-  if (Number.isInteger(n) && n >= 1 && n <= 4) return n
-  return null
-}
-
-function normalizeBetDigit(v) {
-  const n = Number(v)
-  if (Number.isInteger(n) && n >= 1 && n <= 4) return n
-  return null
-}
-
-app.get('/health', (_, res) => res.json({ ok: true }))
-
-app.get('/api/server-ports', (_, res) => {
-  res.setHeader('Cache-Control', 'no-store')
-  res.json({ mainPort: PORT, adminPort: SUPER_ADMIN_PORT })
 })
 
-const distPath = path.join(__dirname, '..', 'client', 'dist')
-if (fs.existsSync(distPath)) {
-  app.use(
-    express.static(distPath, {
-      index: false,
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith('index.html')) {
-          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
-          res.setHeader('Pragma', 'no-cache')
-          return
-        }
-        const ext = path.extname(filePath)
-        if (ext === '.js' || ext === '.css' || ext === '.woff2' || ext === '.woff' || ext === '.ttf') {
-          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
-        }
-      },
-    })
-  )
-  app.use((req, res, next) => {
-    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
-    const clean = req.path.split('?')[0]
-    if (clean.startsWith('/assets/') && path.extname(clean)) {
-      res.status(404).type('text/plain').send('asset not found')
-      return
-    }
-    next()
-  })
-  app.use((req, res, next) => {
-    if (req.method !== 'GET' && req.method !== 'HEAD') return next()
-    if (req.path.startsWith('/socket.io')) return next()
-    const clean = req.path.split('?')[0]
-    const ext = path.extname(clean)
-    if (ext) return next()
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
-    res.setHeader('Pragma', 'no-cache')
-    res.sendFile(path.join(distPath, 'index.html'), (err) => next(err))
-  })
-} else {
-  console.warn('[room-game] missing client/dist at', distPath, '- run: cd client && npm run build')
-}
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', rooms: rooms.size })
+})
 
 io.on('connection', (socket) => {
   socket.on('b_login', ({ username, password }, cb) => {
     if (typeof cb !== 'function') return
-    const u = typeof username === 'string' ? username.trim() : ''
-    if (!u || password !== ADMIN_PASSWORD) {
-      cb({ ok: false, error: '用户名或密码错误' })
-      return
-    }
-    let acc = bAccounts.get(u)
-    if (!acc) {
-      acc = { createdAt: Date.now(), authorized: true, state: 'active' }
-      bAccounts.set(u, acc)
-      ensureBStats(u)
-    } else {
-      if (!acc.authorized) {
-        cb({ ok: false, error: '账号未授权' })
-        return
-      }
-      if (acc.state === 'banned') {
-        cb({ ok: false, error: '账号已封禁' })
-        return
-      }
-      if (acc.state === 'disabled') {
-        cb({ ok: false, error: '账号已停用' })
-        return
-      }
-    }
-    cb({ ok: true, username: u })
-  })
-
-  socket.on('super_admin_login', ({ username, password }, cb) => {
-    if (typeof cb !== 'function') return
-    const u = typeof username === 'string' ? username.trim() : ''
-    if (u === SUPER_ADMIN_USER && password === SUPER_ADMIN_PASS) {
-      cb({ ok: true })
-      return
-    }
-    cb({ ok: false, error: '账号或密码错误' })
-  })
-
-  socket.on('super_admin_list_b', ({ suUser, suPass }, cb) => {
-    if (typeof cb !== 'function') return
-    if (suUser !== SUPER_ADMIN_USER || suPass !== SUPER_ADMIN_PASS) {
-      cb({ ok: false, error: '未授权' })
-      return
-    }
-    const list = []
-    for (const [name, acc] of bAccounts) {
-      list.push({
-        username: name,
-        createdAt: acc.createdAt,
-        authorized: acc.authorized,
-        state: acc.state,
-        ...serializeBStats(name),
-      })
-    }
-    list.sort((a, b) => a.username.localeCompare(b.username))
-    cb({ ok: true, list })
-  })
-
-  socket.on('super_admin_update_b', ({ suUser, suPass, targetUsername, authorized, state }, cb) => {
-    if (typeof cb !== 'function') return
-    if (suUser !== SUPER_ADMIN_USER || suPass !== SUPER_ADMIN_PASS) {
-      cb({ ok: false, error: '未授权' })
-      return
-    }
-    const t = typeof targetUsername === 'string' ? targetUsername.trim() : ''
-    if (!t) {
+    if (!username || !password) {
       cb({ ok: false, error: '参数不完整' })
       return
     }
-    if (!bAccounts.has(t)) {
-      bAccounts.set(t, { createdAt: Date.now(), authorized: true, state: 'active' })
-      ensureBStats(t)
+    if (password !== ADMIN_PASSWORD) {
+      cb({ ok: false, error: '密码错误' })
+      return
     }
-    const acc = bAccounts.get(t)
-    if (typeof authorized === 'boolean') acc.authorized = authorized
-    if (state === 'active' || state === 'disabled' || state === 'banned') acc.state = state
-    cb({ ok: true })
+    cb({ ok: true, username })
   })
 
   socket.on('c_login', ({ username, roomId }, cb) => {
     if (typeof cb !== 'function') return
-    const room = getRoom(roomId)
+    const rid = String(roomId || '').trim()
+    if (!/^\d{3}$/.test(rid)) {
+      cb({ ok: false, error: '房号须为 3 位数字' })
+      return
+    }
+    const room = getRoom(rid)
     if (!room) {
       cb({ ok: false, error: '房间不存在' })
       return
     }
-    cb({ ok: true, username, roomId: room.id })
+    const cu = String(username || '').trim()
+    if (!cu) {
+      cb({ ok: false, error: '用户名不能为空' })
+      return
+    }
+    for (const info of room.sockets.values()) {
+      if (info.username === cu) {
+        cb({ ok: false, error: '用户名已存在' })
+        return
+      }
+    }
+    bStats.get(room.adminUsername).cUsers.add(cu)
+    socket.join(roomKey(room.id))
+    room.sockets.set(socket.id, { role: 'C', username: cu })
+    socket.data.roomId = room.id
+    socket.data.role = 'C'
+    addMessage(room, `【系统】玩家 ${cu} 进入房间。`)
+    broadcastRoom(room, 'messages', { list: room.messages })
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    syncEmptyPlayerDestroyTimer(room)
+    cb({
+      ok: true,
+      room: {
+        id: room.id,
+        adminUsername: room.adminUsername,
+        totalRounds: room.totalRounds,
+        maxBet: room.maxBet,
+        betSeconds: room.betSeconds,
+        currentRound: room.currentRound,
+        messages: room.messages,
+        phase: room.phase,
+        gameEnded: room.gameEnded,
+      },
+    })
   })
 
   socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds }, cb) => {
     if (typeof cb !== 'function') return
-    if (!username || !totalRounds || !maxBet) {
-      cb({ ok: false, error: '参数不完整' })
-      return
-    }
-    const tr = Number(totalRounds)
-    const mb = Number(maxBet)
+    const tr = Number(totalRounds || 10)
+    const mb = Number(maxBet || 200)
     const bs = Number(betSeconds || 30)
-    if (tr < 1 || mb < 1 || ![30, 60].includes(bs)) {
-      cb({ ok: false, error: '参数无效' })
-      return
-    }
-    if (countAdminRooms(username) >= MAX_ROOMS_PER_ADMIN) {
-      cb({ ok: false, error: '最多只能创建 10 个房间' })
+    if (!username || !tr || !mb) {
+      cb({ ok: false, error: '参数不完整' })
       return
     }
     const room = makeRoom(username)
@@ -537,60 +400,40 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '参数不完整' })
       return
     }
-    cb({ ok: true, rooms: listRoomsPayloadForAdmin(username) })
+    const out = []
+    for (const [id, room] of rooms) {
+      if (room.adminUsername === username) {
+        out.push({
+          id: room.id,
+          totalRounds: room.totalRounds,
+          maxBet: room.maxBet,
+          betSeconds: room.betSeconds,
+          currentRound: room.currentRound,
+          phase: room.phase,
+          gameEnded: room.gameEnded,
+          playerCount: playerCount(room),
+        })
+      }
+    }
+    cb({ ok: true, rooms: out })
   })
 
   socket.on('b_join_existing', ({ username, roomId }, cb) => {
     if (typeof cb !== 'function') return
-    const room = getRoom(roomId)
-    if (!room || room.adminUsername !== username) {
-      cb({ ok: false, error: '房间不存在或无权限' })
+    const rid = String(roomId || '').trim()
+    if (!/^\d{3}$/.test(rid)) {
+      cb({ ok: false, error: '房号须为 3 位数字' })
       return
     }
-    socket.join(roomKey(room.id))
-    room.sockets.set(socket.id, { role: 'B', username })
-    socket.data.roomId = room.id
-    socket.data.role = 'B'
-    socket.emit('roomStats', roomStatsPayload(room))
-    syncEmptyPlayerDestroyTimer(room)
-    cb({
-      ok: true,
-      room: {
-        id: room.id,
-        adminUsername: room.adminUsername,
-        totalRounds: room.totalRounds,
-        maxBet: room.maxBet,
-        betSeconds: room.betSeconds,
-        currentRound: room.currentRound,
-        messages: room.messages,
-        phase: room.phase,
-        gameEnded: room.gameEnded,
-      },
-    })
-  })
-
-  socket.on('c_join_room', ({ username, roomId }, cb) => {
-    if (typeof cb !== 'function') return
-    const room = getRoom(roomId)
+    const room = getRoom(rid)
     if (!room) {
       cb({ ok: false, error: '房间不存在' })
       return
     }
-    const cu = typeof username === 'string' ? username.trim() : ''
-    if (!cu) {
-      cb({ ok: false, error: '参数不完整' })
+    if (room.adminUsername !== username) {
+      cb({ ok: false, error: '只能进入自己创建的房间' })
       return
     }
-    ensureBStats(room.adminUsername)
-    bStats.get(room.adminUsername).cUsers.add(cu)
-    socket.join(roomKey(room.id))
-    room.sockets.set(socket.id, { role: 'C', username: cu })
-    socket.data.roomId = room.id
-    socket.data.role = 'C'
-    addMessage(room, `【系统】玩家 ${cu} 进入房间。`)
-    broadcastRoom(room, 'messages', { list: room.messages })
-    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
-    syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
       room: {
@@ -635,8 +478,7 @@ io.on('connection', (socket) => {
       const d = normalizeBetDigit(x)
       if (d != null) digits.push(d)
     }
-    const smile =
-      Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
+    const smile = Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
     if (digits.length < 1 || digits.length > 3) {
       reply({ ok: false, error: '选号无效' })
       return
@@ -666,18 +508,36 @@ io.on('connection', (socket) => {
     reply({ ok: true })
   })
 
-  socket.on('b_settle', ({ drawNumber }) => {
+  socket.on('b_settle', ({ drawNumber }, cb) => {
+    if (typeof cb !== 'function') return
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
-    if (!room || socket.data.role !== 'B') return
+    if (!room || socket.data.role !== 'B') {
+      cb({ ok: false, error: '无权限' })
+      return
+    }
     const info = room.sockets.get(socket.id)
-    if (!info || info.username !== room.adminUsername) return
-    if (room.phase !== 'closed') return
+    if (!info || info.username !== room.adminUsername) {
+      cb({ ok: false, error: '无权限' })
+      return
+    }
+    if (room.phase !== 'closed') {
+      cb({ ok: false, error: '当前未到开奖阶段' })
+      return
+    }
     const n = normalizeLuckyNumber(drawNumber)
-    if (n == null) return
+    if (n == null) {
+      cb({ ok: false, error: '幸运号必须是 1-4 的数字' })
+      return
+    }
     clearRoomTimers(room)
+    addMessageImage(room, `${n}.jpg`)
+    addMessage(room, `【系统】房主公布幸运号：${n}`)
+    addMessageImage(room, 'ov.jpg')
+    broadcastRoom(room, 'messages', { list: room.messages })
     settleRound(room, n)
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    cb({ ok: true })
   })
 
   socket.on('b_end_round', (cb) => {
@@ -699,8 +559,6 @@ io.on('connection', (socket) => {
     clearRoomTimers(room)
     room.phase = 'closed'
     room.timerLeft = 0
-    addMessageImage(room, drawNumber + '.jpg')
-    addMessage(room, `【系统】房主公布幸运号：${drawNumber}`)
     addMessageImage(room, 'ov.jpg')
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
@@ -748,6 +606,18 @@ io.on('connection', (socket) => {
     syncEmptyPlayerDestroyTimer(room)
   })
 })
+
+function dismissRoom(room) {
+  clearRoomTimers(room)
+  addMessage(room, `【系统】房间 ${room.id} 已解散。`)
+  broadcastRoom(room, 'messages', { list: room.messages })
+  rooms.delete(String(room.id))
+  const sockets = room.sockets
+  room.sockets = new Map()
+  for (const socket of sockets.keys()) {
+    socket.disconnect()
+  }
+}
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on ${PORT}`)
