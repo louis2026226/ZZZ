@@ -5,8 +5,9 @@ WORKDIR /app/client
 COPY client/package.json ./
 RUN npm install
 COPY client/ .
-ARG VITE_SOCKET_URL=
+ARG VITE_SOCKET_URL=""
 ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
+RUN echo "Build arg VITE_SOCKET_URL=$VITE_SOCKET_URL"
 RUN npm run build
 
 FROM node:20-alpine AS runner

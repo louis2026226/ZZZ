@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:zzz-production-c9dc.up.railway.app)",
+      "Bash(git add:*)"
+    ]
+  }
+}
