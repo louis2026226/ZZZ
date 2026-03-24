@@ -1,17 +1,11 @@
-import express from 'express'
-import { createServer } from 'http'
-import { Server } from 'socket.io'
-import cors from 'cors'
-import path from 'path'
-import fs from 'fs'
+const express = require('express')
+const { createServer } = require('http')
+const { Server } = require('socket.io')
+const cors = require('cors')
+const path = require('path')
+const fs = require('fs')
 
-let __dirname
-try {
-  const { fileURLToPath } = await import('url')
-  __dirname = path.dirname(fileURLToPath(import.meta.url))
-} catch {
-  __dirname = path.dirname('')
-}
+const __dirname = path.dirname(__filename)
 const PORT = Number(process.env.PORT) || 3000
 const _sap = process.env.SUPER_ADMIN_PORT
 let SUPER_ADMIN_PORT
@@ -169,10 +163,9 @@ function digitKindsUsedBySocket(room, sid) {
 function startBettingTimer(room) {
   clearRoomTimers(room)
   room.phase = 'betting'
-  const total = room.betSeconds || 30
+  const total = room.betSeconds || 0
   room.timerLeft = total
   broadcastRoom(room, 'timer', { left: room.timerLeft, total })
-  const total = room.betSeconds || 0
   if (total > 0) {
     room.timerInterval = setInterval(() => {
       room.timerLeft -= 1
