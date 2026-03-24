@@ -66,10 +66,10 @@ export default function CLogin() {
         >
           进入房间
         </button>
+        <div className="mt-[100px] text-center text-sm text-zinc-500">
+          V1.0.70
+        </div>
       </form>
-      <div className="text-center text-sm text-zinc-500">
-        V1.0.62
-      </div>
     </div>
   )
 }
