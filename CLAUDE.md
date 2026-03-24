@@ -173,3 +173,17 @@ From `.cursor/rules/execute-first.mdc`:
 - **Room auto-cleanup**: Empty rooms (no sockets) are destroyed after 1 minute
 - **Multi-bet per round**: Players can place multiple bets per round, but limited to 2 distinct numbers total
 - **Build output**: Server serves `client/dist` statically; ensure build exists before production
+
+## Claude Code Project Rules
+
+### Critical Workflow (Test-Driven)
+1. **Before Implementation**: For any new feature or bug fix, you MUST first create or update a test case (e.g., using Vitest, Jest, or Playwright).
+2. **During Development**: Run the specific test case to confirm it fails as expected (Red light).
+3. **After Implementation**: Run the full test suite or the relevant test file to ensure it passes (Green light).
+4. **Verification**: You are NOT allowed to say "Task Complete" until you have shared the test execution output in the terminal.
+
+### Commands
+- Build: `npm run build`
+- Test: `npm test`
+- Lint: `npm run lint`
+- Typecheck: `npx tsc --noEmit`
