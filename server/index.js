@@ -535,31 +535,30 @@ io.on('connection', (socket) => {
   })
 
   socket.on('b_settle', ({ drawNumber }, cb) => {
-    if (typeof cb !== 'function') return
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room || socket.data.role !== 'B') {
-      cb({ ok: false, error: '无权限' })
+      cb?.({ ok: false, error: '无权限' })
       return
     }
     const info = room.sockets.get(socket.id)
     if (!info || info.username !== room.adminUsername) {
-      cb({ ok: false, error: '无权限' })
+      cb?.({ ok: false, error: '无权限' })
       return
     }
     if (room.phase !== 'closed') {
-      cb({ ok: false, error: '当前未到开奖阶段' })
+      cb?.({ ok: false, error: '当前未到开奖阶段' })
       return
     }
     const n = normalizeLuckyNumber(drawNumber)
     if (n == null) {
-      cb({ ok: false, error: '幸运号必须是 1-4 的数字' })
+      cb?.({ ok: false, error: '幸运号必须是 1-4 的数字' })
       return
     }
     clearRoomTimers(room)
     settleRound(room, n)
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
-    cb({ ok: true })
+    cb?.({ ok: true })
   })
 
   socket.on('b_end_round', (cb) => {
