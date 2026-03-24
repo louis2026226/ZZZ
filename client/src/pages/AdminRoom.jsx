@@ -797,7 +797,7 @@ export default function AdminRoom() {
                   key={String(item.value)}
                   type="button"
                   disabled={disabled}
-                  onClick={() => toggleNum(item.value)}
+                  onClick={() => { sound('button'); toggleNum(item.value) }}
                   className={`h-14 w-14 rounded-lg text-lg font-bold ${
                     disabled
                       ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
@@ -825,7 +825,7 @@ export default function AdminRoom() {
                 key={`${idx}-${a}`}
                 type="button"
                 disabled={!betting}
-                onClick={() => setPickedAmount(a)}
+                onClick={() => { sound('button'); setPickedAmount(a) }}
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
                   !betting
                     ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
@@ -841,7 +841,7 @@ export default function AdminRoom() {
               <button
                 type="button"
                 disabled={!betting}
-                onClick={() => setPickedAmount(customButtonAmount)}
+                onClick={() => { sound('button'); setPickedAmount(customButtonAmount) }}
                 className={`rounded-lg border border-amber-300 px-3 py-2 text-sm font-medium ${
                   !betting
                     ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'

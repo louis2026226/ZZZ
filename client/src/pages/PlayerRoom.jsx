@@ -87,13 +87,12 @@ function buildRoundRecords(messages, myName) {
     const entries = []
     let myDelta = 0
     for (const piece of rest.split('；')) {
-      const segs = piece.trim().split(' | ')
-      if (segs.length < 3) continue
-      const uname = segs[0]
-      const label = segs[1]
-      const amt = Number(segs[2])
-      if (label !== '+' && label !== '-' && label !== '赢' && label !== '输') continue
-      const delta = label === '+' || label === '赢' ? amt : -amt
+      const m = piece.trim().match(/^(.+?) ([+-])(\d+)$/)
+      if (!m) continue
+      const uname = m[1]
+      const label = m[2]
+      const amt = Number(m[3])
+      const delta = label === '+' ? amt : -amt
       if (uname === myName) myDelta += delta
       const q = pendingQueues.get(uname)
       const numLabel = q && q.length > 0 ? q.shift() : '-'

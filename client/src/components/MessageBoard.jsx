@@ -49,7 +49,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
             <li key={`${m.t}-${i}`} className="list-none">
               <img src={`/${m.image}`} alt="" className="max-w-[120px] max-h-[120px]" />
             </li>
-          ) : (
+          ) : m.text?.includes('离开房间') ? null : (
             <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
               {displayMessage(m.text)}
             </li>
