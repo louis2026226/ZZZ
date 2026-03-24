@@ -355,7 +355,15 @@ export default function PlayerRoom() {
   return (
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
-      <LogoutButton socketRef={socketRef} onStatsClick={() => setStatsOpen(true)} />
+      <LogoutButton
+        onStatsClick={() => setStatsOpen(true)}
+        onBack={() => {
+          socketRef.current?.disconnect()
+          socketRef.current = null
+          sessionStorage.removeItem('cRoomId')
+          nav('/login/c')
+        }}
+      />
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}

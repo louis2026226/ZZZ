@@ -612,10 +612,6 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '无权限' })
       return
     }
-    if (!room.gameEnded) {
-      cb({ ok: false, error: '须打完总局数后才可解散' })
-      return
-    }
     dismissRoom(room)
     cb({ ok: true })
   })

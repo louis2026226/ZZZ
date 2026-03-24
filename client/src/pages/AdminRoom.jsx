@@ -770,9 +770,9 @@ export default function AdminRoom() {
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
       <LogoutButton
-        socketRef={socketRef}
+        onDismiss={isHost ? onDismiss : undefined}
         onStatsClick={() => setStatsOpen(true)}
-        onBackToLobby={backToLobby}
+        onBack={backToLobby}
       />
       <RoomCornerInfo
         roomId={roomId}
@@ -925,15 +925,6 @@ export default function AdminRoom() {
               className="flex-1 rounded-lg py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
             >
               下课
-            </button>
-          ) : null}
-          {isHost && gameEnded ? (
-            <button
-              type="button"
-              onClick={() => { sound('button'); onDismiss() }}
-              className="flex-1 rounded-lg bg-red-700 py-3 text-sm font-medium hover:bg-red-600"
-            >
-              解散
             </button>
           ) : null}
           <button

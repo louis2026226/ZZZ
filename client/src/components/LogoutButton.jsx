@@ -1,32 +1,17 @@
-import { LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
 import { playSound } from '../utils/sound.js'
 
-export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby }) {
-  const nav = useNavigate()
-
-  function onLogout() {
-    if (socketRef?.current) {
-      socketRef.current.disconnect()
-      socketRef.current = null
-    }
-    sessionStorage.removeItem('bUser')
-    sessionStorage.removeItem('bRoomId')
-    sessionStorage.removeItem('cUser')
-    sessionStorage.removeItem('cRoomId')
-    nav('/')
-  }
-
+export default function LogoutButton({ onDismiss, onStatsClick, onBack }) {
   return (
     <div className="fixed left-3 top-3 z-50 flex gap-2">
-      <button
-        type="button"
-        onClick={() => { playSound('button'); onLogout() }}
-        className="flex items-center gap-1 rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
-      >
-        <LogOut className="h-4 w-4" />
-        退出
-      </button>
+      {onDismiss ? (
+        <button
+          type="button"
+          onClick={() => { playSound('button'); onDismiss() }}
+          className="rounded-lg bg-red-800 px-3 py-2 text-sm text-white shadow hover:bg-red-700"
+        >
+          解散
+        </button>
+      ) : null}
       {onStatsClick ? (
         <button
           type="button"
@@ -36,13 +21,13 @@ export default function LogoutButton({ socketRef, onStatsClick, onBackToLobby })
           战绩
         </button>
       ) : null}
-      {onBackToLobby ? (
+      {onBack ? (
         <button
           type="button"
-          onClick={() => { playSound('button'); onBackToLobby() }}
+          onClick={() => { playSound('button'); onBack() }}
           className="rounded-lg bg-zinc-800 px-3 py-2 text-sm text-white shadow hover:bg-zinc-700"
         >
-          返回大厅
+          返回
         </button>
       ) : null}
     </div>
