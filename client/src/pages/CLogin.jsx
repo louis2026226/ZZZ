@@ -5,8 +5,8 @@ import { playSound } from '../utils/sound.js'
 
 export default function CLogin() {
   const nav = useNavigate()
-  const [username, setUsername] = useState('')
-  const [roomId, setRoomId] = useState('')
+  const [username, setUsername] = useState(() => localStorage.getItem('cUser') || '')
+  const [roomId, setRoomId] = useState(() => localStorage.getItem('cRoomId') || '')
   const [err, setErr] = useState('')
 
   function onSubmit(e) {
@@ -26,6 +26,8 @@ export default function CLogin() {
       }
       sessionStorage.setItem('cUser', username.trim())
       sessionStorage.setItem('cRoomId', rid)
+      localStorage.setItem('cUser', username.trim())
+      localStorage.setItem('cRoomId', rid)
       s.disconnect()
       nav('/c/play')
     })
@@ -69,7 +71,7 @@ export default function CLogin() {
           进入房间
         </button>
         <div className="mt-[100px] text-center text-sm text-zinc-500">
-          V1.0.82
+          V1.0.83
         </div>
       </form>
     </div>
