@@ -153,6 +153,7 @@ function beginBettingRound(room, opts = {}) {
   resetRoundBets(room)
   addMessageImage(room, 'be.jpg')
   addMessage(room, `【系统】游戏开始，请玩家等待管理员公布幸运号。`)
+  broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
   broadcastRoom(room, 'gameStart', {})
   broadcastRoom(room, 'roomStats', roomStatsPayload(room))
