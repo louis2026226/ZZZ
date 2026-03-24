@@ -336,7 +336,7 @@ export default function PlayerRoom() {
     []
   )
   const boardClass =
-    'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
+    'min-h-[180px] h-[50dvh] max-h-[50dvh] sm:min-h-[200px]'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
   const digitStr = pickedNums.join('')
   const selectedNumText =
@@ -501,8 +501,7 @@ export default function PlayerRoom() {
         </div>
 
         <p className="text-xs text-zinc-500">
-          单注上限 {maxBet || '-'}
-          {gameEnded ? ' · 游戏已结束' : ''}
+          {gameEnded ? '游戏已结束' : ''}
         </p>
       </div>
 

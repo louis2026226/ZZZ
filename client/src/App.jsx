@@ -20,9 +20,6 @@ export default function App() {
         <Route path="/super-admin/panel" element={<SuperAdmin />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      <div className="pointer-events-none fixed bottom-3 left-3 z-[60] text-[11px] font-medium text-zinc-400">
-        V1.0.59
-      </div>
     </>
   )
 }

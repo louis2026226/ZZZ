@@ -695,7 +695,7 @@ export default function AdminRoom() {
   }
 
   const boardClass =
-    'min-h-[180px] h-[min(42dvh,26rem)] max-h-[50dvh] sm:min-h-[200px]'
+    'min-h-[180px] h-[50dvh] max-h-[50dvh] sm:min-h-[200px]'
   const canStart =
     isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
@@ -896,8 +896,7 @@ export default function AdminRoom() {
         </div>
 
         <p className="text-xs text-zinc-500">
-          单注上限 {maxBetState || '-'}
-          {gameEnded ? ' · 游戏已结束' : ''}
+          {gameEnded ? '游戏已结束' : ''}
         </p>
       </div>
 
