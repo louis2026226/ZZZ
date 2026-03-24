@@ -416,7 +416,7 @@ export default function PlayerRoom() {
 
         <div>
           <p className="mb-2 text-sm text-zinc-400">
-            玩家选择积分：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
+            选择积分：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
           </p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a, idx) => (
