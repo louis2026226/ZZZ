@@ -534,7 +534,8 @@ io.on('connection', (socket) => {
       showSmile: smile,
     })
     room.playerBets.set(socket.id, list)
-    const msg = `【答题】${username} | 选号 ${digits.join('')}${smile ? '🙂' : ''} | ${amt}`
+    const displayStr = distinctSet.size === 1 ? String([...distinctSet][0]) : digits.join('')
+    const msg = `【答题】${username} | 选号 ${displayStr}${smile ? '🙂' : ''} | ${amt}`
     addMessage(room, msg)
     broadcastRoom(room, 'messages', { list: room.messages })
     reply({ ok: true })
