@@ -702,6 +702,7 @@ io.on('connection', (socket) => {
     room.phase = 'closed'
     room.timerLeft = 0
     addMessageImage(room, drawNumber + '.jpg')
+    addMessage(room, `【系统】房主公布幸运号：${drawNumber}`)
     addMessageImage(room, 'ov.jpg')
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
