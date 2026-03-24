@@ -2,7 +2,23 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:zzz-production-c9dc.up.railway.app)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npm install:*)",
+      "Bash(npx husky:*)",
+      "Bash(node client/node_modules/.bin/husky init)",
+      "Bash(ls:*)",
+      "Bash(cd:*)",
+      "Bash(cd /tmp)",
+      "Bash(wget -q https://github.com/louis2026226/ZZZ/raw/main/client/public/be.jpg -O be.jpg)",
+      "Bash(wget -q https://github.com/louis2026226/ZZZ/raw/main/client/public/ov.jpg -O ov.jpg)",
+      "Bash(convert be.jpg -resize 120x120! be_new.jpg)",
+      "Bash(convert ov.jpg -resize 120x120! ov_new.jpg)",
+      "Bash(grep \"^\\\\\\(1\\\\.jpg\\\\|2\\\\.jpg\\\\|3\\\\.jpg\\\\|4\\\\.jpg\\\\\\)$\")",
+      "Bash(git reset:*)"
     ]
   }
 }
