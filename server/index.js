@@ -599,6 +599,17 @@ io.on('connection', (socket) => {
     cb?.({ ok: true })
   })
 
+  socket.on('b_ring_bell', () => {
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room || socket.data.role !== 'B') return
+    const info = room.sockets.get(socket.id)
+    if (!info || info.username !== room.adminUsername) return
+    addMessage(room, '【系统】还有人答题吗？')
+    broadcastRoom(room, 'messages', { list: room.messages })
+    broadcastRoom(room, 'bellRing', {})
+  })
+
   socket.on('b_dismiss_room', (cb) => {
     if (typeof cb !== 'function') return
     const roomId = socket.data.roomId

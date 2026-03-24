@@ -301,6 +301,7 @@ export default function AdminRoom() {
         setSettleOpen(false)
       })
       s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
+      s.on('bellRing', () => sound('pass'))
       s.on('roomDismissed', ({ roomId }) => {
         const sr = sessionStorage.getItem('bRoomId')
         if (!sr || String(roomId) !== String(sr)) return
@@ -785,8 +786,18 @@ export default function AdminRoom() {
         totalRounds={totalRoundsState}
       />
 
-      <div className="mb-4 shrink-0">
+      <div className="relative mb-4 shrink-0">
         <MessageBoard messages={messages} className={boardClass} />
+        {isHost && phase === 'betting' ? (
+          <button
+            type="button"
+            onClick={() => { sound('button'); socketRef.current?.emit('b_ring_bell') }}
+            className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
+            title="还有人答题吗？"
+          >
+            🔔
+          </button>
+        ) : null}
       </div>
 
       <div className="flex flex-1 flex-col gap-6">

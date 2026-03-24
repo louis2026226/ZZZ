@@ -218,6 +218,7 @@ export default function PlayerRoom() {
       setPhase('ended')
     })
     s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
+    s.on('bellRing', () => sound('pass'))
     s.on('roomDismissed', ({ roomId }) => {
       const rid = sessionStorage.getItem('cRoomId')
       if (!rid || String(roomId) !== String(rid)) return

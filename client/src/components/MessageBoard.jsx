@@ -26,6 +26,7 @@ function lineClass(text) {
   if (!text) return 'text-zinc-100'
   if (text.includes('游戏开始')) return 'text-emerald-400'
   if (text.includes('房主公布幸运号')) return 'text-sky-400'
+  if (text.includes('还有人答题吗')) return 'text-red-400'
   if (text.startsWith('【结算】')) {
     return /\+\d+（/.test(text) ? 'text-orange-400' : 'text-zinc-400'
   }

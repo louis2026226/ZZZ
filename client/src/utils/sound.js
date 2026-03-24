@@ -19,6 +19,7 @@ async function _load(key) {
 // 模块加载时立即预解码，确保首次点击无延迟
 _load('button')
 _load('me')
+_load('pass')
 
 export function playSound(key) {
   try {
