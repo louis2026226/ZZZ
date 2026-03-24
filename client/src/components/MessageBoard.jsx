@@ -19,6 +19,12 @@ function renderText(text) {
       return <>{prefix} | <span className="text-yellow-400">{amt}</span></>
     }
   }
+  if (text.startsWith('【结算】')) {
+    const m = displayed.match(/^(.*?)（(.+)）(.*)$/)
+    if (m) {
+      return <>{m[1]}<span className="text-white">（{m[2]}）</span>{m[3]}</>
+    }
+  }
   return displayed
 }
 

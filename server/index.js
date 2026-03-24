@@ -251,7 +251,9 @@ function settleRound(room, drawNumber) {
       const delta = mult != null ? Math.round(mult * bet.amount) : -bet.amount
       const label = delta >= 0 ? '+' : '-'
       const absAmt = Math.abs(delta)
-      addMessage(room, `【结算】${bet.username} ${label}${absAmt}（下注${bet.amount}）`)
+      const distinctNums = [...new Set(bet.numbers)]
+      const numDisplay = distinctNums.length === 1 ? String(distinctNums[0]) : bet.numbers.join('')
+      addMessage(room, `【结算】${bet.username} ${label}${absAmt}（${numDisplay}+${bet.amount}）`)
       playerNetDelta.set(bet.username, (playerNetDelta.get(bet.username) || 0) + delta)
       const prevPnl = st.cPnL.get(bet.username) || 0
       st.cPnL.set(bet.username, prevPnl + delta)
