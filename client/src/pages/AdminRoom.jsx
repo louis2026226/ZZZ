@@ -6,19 +6,7 @@ import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
-
-function playSound(src) {
-  const a = new Audio(src)
-  a.play().catch(() => {})
-}
-
-const _sounds = {}
-function sound(key) {
-  if (!_sounds[key]) _sounds[key] = new Audio(`/${key}.mp3`)
-  const a = _sounds[key]
-  a.currentTime = 0
-  a.play().catch(() => {})
-}
+import { playSound as sound } from '../utils/sound.js'
 
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
