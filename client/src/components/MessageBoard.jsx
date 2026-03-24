@@ -12,7 +12,10 @@ function lineClass(text) {
   if (!text) return 'text-zinc-100'
   if (text.includes('游戏开始')) return 'text-emerald-400'
   if (text.includes('房主公布幸运号')) return 'text-sky-400'
-  if (text.includes('【结算】') || text.includes('【本局统计】')) return 'text-amber-400'
+  if (text.startsWith('【结算】')) {
+    return /\+\d+（/.test(text) ? 'text-orange-400' : 'text-zinc-400'
+  }
+  if (text.startsWith('【本局统计】')) return 'text-amber-400'
   if (text.includes('【系统】玩家') && (text.includes('进入房间') || text.includes('离开房间')))
     return 'text-zinc-500'
   if (text.includes('房主已离开房间')) return 'text-zinc-500'

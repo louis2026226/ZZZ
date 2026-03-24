@@ -241,7 +241,7 @@ function settleRound(room, drawNumber) {
   ensureBStats(owner)
   const st = bStats.get(owner)
   st.totalRoundsSettled += 1
-  const lines = []
+  const playerNetDelta = new Map()
   for (const [, betOrBets] of room.playerBets) {
     const bets = Array.isArray(betOrBets) ? betOrBets : [betOrBets]
     for (const bet of bets) {
@@ -249,21 +249,26 @@ function settleRound(room, drawNumber) {
       const delta = mult != null ? Math.round(mult * bet.amount) : -bet.amount
       const label = delta >= 0 ? '+' : '-'
       const absAmt = Math.abs(delta)
-      lines.push(`${bet.username} | ${label} | ${absAmt}`)
-      addMessage(room, `【结算】${bet.username} | ${label}${absAmt}（下注${bet.amount}）`)
+      addMessage(room, `【结算】${bet.username} ${label}${absAmt}（下注${bet.amount}）`)
+      playerNetDelta.set(bet.username, (playerNetDelta.get(bet.username) || 0) + delta)
       const prevPnl = st.cPnL.get(bet.username) || 0
       st.cPnL.set(bet.username, prevPnl + delta)
       if (bet.username === owner) st.selfPnL += delta
     }
   }
-  if (lines.length === 0) {
+  if (playerNetDelta.size === 0) {
     addMessage(room, '【结算】本局无人下注。')
   } else {
-    addMessage(room, `【本局统计】${lines.join('；')}`)
+    const statLines = []
+    for (const [uname, netDelta] of playerNetDelta) {
+      const label = netDelta >= 0 ? '+' : '-'
+      statLines.push(`${uname} ${label}${Math.abs(netDelta)}`)
+    }
+    addMessage(room, `【本局统计】${statLines.join('；')}`)
   }
   addMessageDivider(room)
   broadcastRoom(room, 'messages', { list: room.messages })
-  broadcastRoom(room, 'roundResult', { drawNumber: num, lines })
+  broadcastRoom(room, 'roundResult', { drawNumber: num })
 
   if (room.currentRound >= room.totalRounds) {
     room.gameEnded = true
