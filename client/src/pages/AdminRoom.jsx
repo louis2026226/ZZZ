@@ -865,6 +865,15 @@ export default function AdminRoom() {
                 开始
               </button>
             ) : null}
+            {isHost && !gameEnded && phase === 'betting' ? (
+              <button
+                type="button"
+                onClick={onEndGame}
+                className="rounded-lg bg-red-600 px-4 py-3 text-sm font-medium hover:bg-red-500"
+              >
+                下课
+              </button>
+            ) : null}
             {isHost && gameEnded ? (
               <button
                 type="button"
