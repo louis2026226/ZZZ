@@ -57,7 +57,7 @@ function unionKindsSize(usedDigitKinds, pick) {
 
 function validDigitPick(digits) {
   const len = digits.length
-  return len >= 1 && len <= 4
+  return len >= 1 && len <= 3
 }
 
 function buildRoundRecords(messages, myName) {
@@ -429,6 +429,7 @@ export default function AdminRoom() {
       const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
       if (next > cur) {
+        if (digitSum14(p) > 3) return prev
         if (unionKindsSize(roundUsedDigits, p) > 2) return prev
       }
       return p
@@ -741,7 +742,7 @@ export default function AdminRoom() {
             {nums.map((item) => {
               const c = numPick[item.value] ?? 0
               const d = item.value
-              const maxDigitsReached = digitPick.length >= 4
+              const maxDigitsReached = digitPick.length >= 3
               let kindBlocked = false
               if (d !== 'smile' && betting && c === 0 && !maxDigitsReached) {
                 const u = new Set(roundUsedDigits)

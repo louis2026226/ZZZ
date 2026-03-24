@@ -57,7 +57,7 @@ function unionKindsSize(usedDigitKinds, pick) {
 
 function validDigitPick(digits) {
   const len = digits.length
-  return len >= 1 && len <= 4
+  return len >= 1 && len <= 3
 }
 
 function buildRoundRecords(messages, myName) {
@@ -142,7 +142,7 @@ export default function PlayerRoom() {
   const myTotal = useMemo(() => roundRecords.reduce((s, r) => s + r.myDelta, 0), [roundRecords])
   const pickedNums = useMemo(() => buildDigitsFromPick(numPick), [numPick])
   const pickedCount = pickedNums.length
-  const maxNumsReached = pickedCount >= 4
+  const maxNumsReached = pickedCount >= 3
 
   const refreshAmounts = useCallback(() => {
     setAmounts(pickRandomAmounts(maxBet))
@@ -249,6 +249,7 @@ export default function PlayerRoom() {
       const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
       if (next > cur) {
+        if (digitSum14(p) > 3) return prev
         if (unionKindsSize(roundUsedDigits, p) > 2) return prev
       }
       return p
