@@ -154,7 +154,7 @@ export default function AdminRoom() {
   const [totalRounds, setTotalRounds] = useState(10)
   const [maxBet, setMaxBet] = useState(200)
   const [betSeconds, setBetSeconds] = useState(30)
-  const [timerEnabled, setTimerEnabled] = useState(true)
+  const [timerEnabled, setTimerEnabled] = useState(false)
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [messages, setMessages] = useState([])
   const [playerCount, setPlayerCount] = useState(0)
