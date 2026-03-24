@@ -701,6 +701,7 @@ io.on('connection', (socket) => {
     clearRoomTimers(room)
     room.phase = 'closed'
     room.timerLeft = 0
+    addMessageImage(room, `${drawNumber}.jpg`)
     addMessageImage(room, 'ov.jpg')
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
