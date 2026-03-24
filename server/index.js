@@ -631,7 +631,7 @@ io.on('connection', (socket) => {
     }
     const smile =
       Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
-    if (digits.length < 1 || digits.length > 2) {
+    if (digits.length < 1 || digits.length > 4) {
       reply({ ok: false, error: '选号无效' })
       return
     }

@@ -57,7 +57,7 @@ function unionKindsSize(usedDigitKinds, pick) {
 
 function validDigitPick(digits) {
   const len = digits.length
-  return len >= 1 && len <= 2
+  return len >= 1 && len <= 4
 }
 
 function buildRoundRecords(messages, myName) {
@@ -142,7 +142,7 @@ export default function PlayerRoom() {
   const myTotal = useMemo(() => roundRecords.reduce((s, r) => s + r.myDelta, 0), [roundRecords])
   const pickedNums = useMemo(() => buildDigitsFromPick(numPick), [numPick])
   const pickedCount = pickedNums.length
-  const maxNumsReached = pickedCount >= 2
+  const maxNumsReached = pickedCount >= 4
 
   const refreshAmounts = useCallback(() => {
     setAmounts(pickRandomAmounts(maxBet))
@@ -249,7 +249,6 @@ export default function PlayerRoom() {
       const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
       if (next > cur) {
-        if (digitSum14(p) > 2) return prev
         if (unionKindsSize(roundUsedDigits, p) > 2) return prev
       }
       return p
@@ -416,7 +415,7 @@ export default function PlayerRoom() {
 
         <div>
           <p className="mb-2 text-sm text-zinc-400">
-            玩家选择金额：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
+            玩家选择积分：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
           </p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a, idx) => (

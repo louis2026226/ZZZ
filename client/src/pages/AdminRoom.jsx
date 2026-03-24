@@ -57,7 +57,7 @@ function unionKindsSize(usedDigitKinds, pick) {
 
 function validDigitPick(digits) {
   const len = digits.length
-  return len >= 1 && len <= 2
+  return len >= 1 && len <= 4
 }
 
 function buildRoundRecords(messages, myName) {
@@ -429,7 +429,6 @@ export default function AdminRoom() {
       const next = cur >= 2 ? 0 : cur + 1
       const p = { ...prev, [n]: next }
       if (next > cur) {
-        if (digitSum14(p) > 2) return prev
         if (unionKindsSize(roundUsedDigits, p) > 2) return prev
       }
       return p
@@ -742,7 +741,7 @@ export default function AdminRoom() {
             {nums.map((item) => {
               const c = numPick[item.value] ?? 0
               const d = item.value
-              const maxDigitsReached = digitPick.length >= 2
+              const maxDigitsReached = digitPick.length >= 4
               let kindBlocked = false
               if (d !== 'smile' && betting && c === 0 && !maxDigitsReached) {
                 const u = new Set(roundUsedDigits)
@@ -781,7 +780,7 @@ export default function AdminRoom() {
 
         <div>
           <p className="mb-2 text-sm text-zinc-400">
-            玩家选择金额：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
+            玩家选择积分：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
           </p>
           <div className="flex flex-wrap gap-2">
             {amounts.map((a, idx) => (
