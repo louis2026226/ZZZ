@@ -290,18 +290,17 @@ function ensureBStats(username) {
 const rooms = new Map()
 const bStats = new Map()
 
-app.get('/', (req, res) => {
-  const distPath = path.join(__dirname, '..', 'client', 'dist')
-  if (fs.existsSync(distPath)) {
-    res.sendFile(path.join(distPath, 'index.html'))
-  } else {
-    res.send('Server is running. Please connect via WebSocket.')
-  }
-})
-
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', rooms: rooms.size })
 })
+
+const distPath = path.join(__dirname, '..', 'client', 'dist')
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath))
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'))
+  })
+}
 
 io.on('connection', (socket) => {
   socket.on('b_login', ({ username, password }, cb) => {
