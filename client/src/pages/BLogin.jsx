@@ -62,7 +62,7 @@ export default function BLogin() {
           登录
         </button>
         <div className="mt-[100px] text-center text-sm text-zinc-500">
-          V1.0.76
+          V1.0.77
         </div>
       </form>
     </div>

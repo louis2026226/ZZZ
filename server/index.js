@@ -200,6 +200,20 @@ function normalizeLuckyNumber(x) {
   return null
 }
 
+// 返回赢倍数（null表示未中，负数不存在）
+// 单号（含11/22）: ×3；双号同权(12): ×1；双号偏权(112): 重号×1.5 轻号×0.5
+function calcWinMultiplier(numbers, luckyNum) {
+  const counts = {}
+  for (const n of numbers) counts[n] = (counts[n] || 0) + 1
+  if (!counts[luckyNum]) return null
+  const distinct = Object.keys(counts).length
+  if (distinct === 1) return 3
+  const vals = Object.values(counts)
+  if (vals[0] === vals[1]) return 1
+  const heavyNum = Number(Object.keys(counts).find((k) => counts[k] > 1))
+  return luckyNum === heavyNum ? 1.5 : 0.5
+}
+
 function resetRoundBets(room) {
   room.playerBets.clear()
 }
@@ -231,12 +245,12 @@ function settleRound(room, drawNumber) {
   for (const [, betOrBets] of room.playerBets) {
     const bets = Array.isArray(betOrBets) ? betOrBets : [betOrBets]
     for (const bet of bets) {
-      const win = bet.numbers.includes(num)
-      const label = win ? '+' : '-'
-      const amt = bet.amount
-      lines.push(`${bet.username} | ${label} | ${amt}`)
-      addMessage(room, `【结算】${bet.username} | ${label} | ${amt}`)
-      const delta = win ? amt : -amt
+      const mult = calcWinMultiplier(bet.numbers, num)
+      const delta = mult != null ? Math.round(mult * bet.amount) : -bet.amount
+      const label = delta >= 0 ? '+' : '-'
+      const absAmt = Math.abs(delta)
+      lines.push(`${bet.username} | ${label} | ${absAmt}`)
+      addMessage(room, `【结算】${bet.username} | ${label}${absAmt}（下注${bet.amount}）`)
       const prevPnl = st.cPnL.get(bet.username) || 0
       st.cPnL.set(bet.username, prevPnl + delta)
       if (bet.username === owner) st.selfPnL += delta
@@ -492,21 +506,22 @@ io.on('connection', (socket) => {
     }
     const raw = Array.isArray(numbers) ? numbers : []
     const digits = []
-    const seenDigits = new Set()
+    const distinctSet = new Set()
     for (const x of raw) {
       const d = normalizeBetDigit(x)
-      if (d != null && !seenDigits.has(d)) {
-        seenDigits.add(d)
+      if (d != null) {
         digits.push(d)
+        distinctSet.add(d)
       }
     }
     const smile = Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
-    if (digits.length < 1 || digits.length > 3) {
+    // 1-3个号码，最多2个不同数字
+    if (digits.length < 1 || digits.length > 3 || distinctSet.size < 1 || distinctSet.size > 2) {
       reply({ ok: false, error: '选号无效' })
       return
     }
     const used = digitKindsUsedBySocket(room, socket.id)
-    for (const d of digits) used.add(d)
+    for (const d of distinctSet) used.add(d)
     if (used.size > 2) {
       reply({ ok: false, error: '本局累计只能用两个不同数字' })
       return
