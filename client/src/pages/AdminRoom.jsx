@@ -168,7 +168,7 @@ export default function AdminRoom() {
   const [customButtonAmount, setCustomButtonAmount] = useState(null)
   const [amounts, setAmounts] = useState(() => pickRandomAmounts(200))
   const [betAlert, setBetAlert] = useState('')
-  const [hostUsername, setHostUsername] = useState('')
+  const [hostUsername, setHostUsername] = useState(() => sessionStorage.getItem('bUser') || '')
   const hostUsernameRef = useRef('')
   const [statsOpen, setStatsOpen] = useState(false)
   const [nextRoundLeft, setNextRoundLeft] = useState(0)

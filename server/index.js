@@ -380,6 +380,10 @@ io.on('connection', (socket) => {
     room.currentRound = 0
     room.gameEnded = false
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
+    socket.join(roomKey(room.id))
+    room.sockets.set(socket.id, { role: 'B', username })
+    socket.data.roomId = room.id
+    socket.data.role = 'B'
     syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
@@ -435,6 +439,12 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '只能进入自己创建的房间' })
       return
     }
+    socket.join(roomKey(room.id))
+    room.sockets.set(socket.id, { role: 'B', username })
+    socket.data.roomId = room.id
+    socket.data.role = 'B'
+    socket.emit('roomStats', roomStatsPayload(room))
+    syncEmptyPlayerDestroyTimer(room)
     cb({
       ok: true,
       room: {
