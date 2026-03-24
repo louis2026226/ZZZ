@@ -221,6 +221,7 @@ function digitKindsUsedBySocket(room, sid) {
 function settleRound(room, drawNumber) {
   const num = normalizeLuckyNumber(drawNumber)
   if (num == null) return
+  addMessageImage(room, `${num}.jpg`)
   addMessage(room, `【系统】房主公布幸运号：${num}`)
   const owner = room.adminUsername
   ensureBStats(owner)
@@ -545,10 +546,6 @@ io.on('connection', (socket) => {
       return
     }
     clearRoomTimers(room)
-    addMessageImage(room, `${n}.jpg`)
-    addMessage(room, `【系统】房主公布幸运号：${n}`)
-    addMessageImage(room, 'ov.jpg')
-    broadcastRoom(room, 'messages', { list: room.messages })
     settleRound(room, n)
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     cb({ ok: true })

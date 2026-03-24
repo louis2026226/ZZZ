@@ -12,6 +12,14 @@ function playSound(src) {
   a.play().catch(() => {})
 }
 
+const _sounds = {}
+function sound(key) {
+  if (!_sounds[key]) _sounds[key] = new Audio(`/${key}.mp3`)
+  const a = _sounds[key]
+  a.currentTime = 0
+  a.play().catch(() => {})
+}
+
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
   if (!Number.isFinite(n) || n < 10) return []
@@ -487,7 +495,7 @@ export default function PlayerRoom() {
           <button
             type="button"
             disabled={!betting}
-            onClick={() => { playSound('/button.mp3'); onConfirm() }}
+            onClick={() => { sound('button'); onConfirm() }}
             className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
             确定

@@ -12,6 +12,14 @@ function playSound(src) {
   a.play().catch(() => {})
 }
 
+const _sounds = {}
+function sound(key) {
+  if (!_sounds[key]) _sounds[key] = new Audio(`/${key}.mp3`)
+  const a = _sounds[key]
+  a.currentTime = 0
+  a.play().catch(() => {})
+}
+
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
   if (!Number.isFinite(n) || n < 10) return []
@@ -892,11 +900,12 @@ export default function AdminRoom() {
 
         <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} inline />
         <div className="flex gap-2">
-          {isHost && !gameEnded && canStart ? (
+          {isHost && !gameEnded ? (
             <button
               type="button"
-              onClick={() => { playSound('/button.mp3'); onStart() }}
-              className="flex-1 rounded-lg bg-amber-600 py-3 text-sm font-medium hover:bg-amber-500"
+              disabled={!canStart}
+              onClick={() => { sound('me'); onStart() }}
+              className="flex-1 rounded-lg py-3 text-sm font-medium bg-amber-600 hover:bg-amber-500 disabled:bg-amber-900 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               上课
             </button>
@@ -904,7 +913,7 @@ export default function AdminRoom() {
           {isHost && !gameEnded ? (
             <button
               type="button"
-              onClick={phase === 'betting' ? () => { playSound('/me.mp3'); onEndGame() } : undefined}
+              onClick={phase === 'betting' ? () => { sound('button'); onEndGame() } : undefined}
               disabled={phase !== 'betting'}
               className="flex-1 rounded-lg py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
             >
@@ -914,7 +923,7 @@ export default function AdminRoom() {
           {isHost && gameEnded ? (
             <button
               type="button"
-              onClick={onDismiss}
+              onClick={() => { sound('button'); onDismiss() }}
               className="flex-1 rounded-lg bg-red-700 py-3 text-sm font-medium hover:bg-red-600"
             >
               解散
@@ -923,7 +932,7 @@ export default function AdminRoom() {
           <button
             type="button"
             disabled={!betting}
-            onClick={() => { playSound('/button.mp3'); onBetConfirm() }}
+            onClick={() => { sound('button'); onBetConfirm() }}
             className="flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
             确定
