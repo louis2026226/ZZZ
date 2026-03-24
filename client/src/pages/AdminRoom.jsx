@@ -862,14 +862,15 @@ export default function AdminRoom() {
                 onClick={onStart}
                 className="rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
               >
-                开始
+                上课
               </button>
             ) : null}
-            {isHost && !gameEnded && phase === 'betting' ? (
+            {isHost && !gameEnded ? (
               <button
                 type="button"
-                onClick={onEndGame}
-                className="rounded-lg bg-red-600 px-4 py-3 text-sm font-medium hover:bg-red-500"
+                onClick={phase === 'betting' ? onEndGame : undefined}
+                disabled={phase !== 'betting'}
+                className="rounded-lg px-4 py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
               >
                 下课
               </button>
@@ -892,15 +893,6 @@ export default function AdminRoom() {
           >
             确定
           </button>
-          {isHost && !gameEnded && phase === 'betting' ? (
-            <button
-              type="button"
-              onClick={onEndGame}
-              className="shrink-0 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium hover:bg-red-500"
-            >
-              结束
-            </button>
-          ) : null}
         </div>
 
         <p className="text-xs text-zinc-500">
