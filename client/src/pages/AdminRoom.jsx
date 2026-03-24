@@ -392,6 +392,19 @@ export default function AdminRoom() {
     })
   }
 
+  function onEndGame() {
+    setErr('')
+    const s = socketRef.current
+    if (!s) return
+    s.emit('b_end_round', (res) => {
+      if (!res?.ok) {
+        setErr(res?.error || '结束失败')
+        return
+      }
+      // 可能不需要额外处理，服务器会发送状态更新
+    })
+  }
+
   const showTimer = phase === 'betting' && timerLeft > 0
   const betting = phase === 'betting' && timerLeft > 0
   const nums = useMemo(
@@ -823,6 +836,17 @@ export default function AdminRoom() {
               >
                 设定
               </button>
+              <button
+                type="button"
+                disabled={!betting}
+                onClick={() => {
+                  setPickedAmount(null)
+                  refreshAmounts()
+                }}
+                className="rounded-lg border border-zinc-500 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                刷新
+              </button>
             </div>
           </div>
         </div>
@@ -859,17 +883,15 @@ export default function AdminRoom() {
           >
             确定
           </button>
-          <button
-            type="button"
-            disabled={!betting}
-            onClick={() => {
-              setPickedAmount(null)
-              refreshAmounts()
-            }}
-            className="shrink-0 rounded-lg border border-zinc-500 px-3 py-3 text-sm text-zinc-200 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            刷新
-          </button>
+          {isHost && !gameEnded && phase === 'betting' ? (
+            <button
+              type="button"
+              onClick={onEndGame}
+              className="shrink-0 rounded-lg bg-red-600 px-4 py-3 text-sm font-medium hover:bg-red-500"
+            >
+              结束
+            </button>
+          ) : null}
         </div>
 
         <p className="text-xs text-zinc-500">

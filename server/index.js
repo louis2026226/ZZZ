@@ -681,6 +681,30 @@ io.on('connection', (socket) => {
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
   })
 
+  socket.on('b_end_round', (cb) => {
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room || socket.data.role !== 'B') {
+      cb?.({ ok: false, error: '无权限' })
+      return
+    }
+    const info = room.sockets.get(socket.id)
+    if (!info || info.username !== room.adminUsername) {
+      cb?.({ ok: false, error: '无权限' })
+      return
+    }
+    if (room.phase !== 'betting') {
+      cb?.({ ok: false, error: '当前不是下注阶段' })
+      return
+    }
+    clearRoomTimers(room)
+    room.phase = 'closed'
+    room.timerLeft = 0
+    broadcastRoom(room, 'roomStats', roomStatsPayload(room))
+    broadcastRoom(room, 'roundClosed')
+    cb?.({ ok: true })
+  })
+
   socket.on('b_dismiss_room', (cb) => {
     if (typeof cb !== 'function') return
     const roomId = socket.data.roomId
