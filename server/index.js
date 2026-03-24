@@ -77,6 +77,11 @@ function addMessage(room, text) {
   if (room.messages.length > 200) room.messages.shift()
 }
 
+function addMessageImage(room, image) {
+  room.messages.push({ t: Date.now(), image })
+  if (room.messages.length > 200) room.messages.shift()
+}
+
 function addMessageDivider(room) {
   room.messages.push({ t: Date.now(), divider: true })
   if (room.messages.length > 200) room.messages.shift()
@@ -120,23 +125,10 @@ function clearEmptyPlayerTimeout(room) {
   }
 }
 
-/** 房间内无人（B+C=0）时，连续超过 1 分钟则关闭房间 */
+/** 房间仅在房主主动解散时销毁，断开连接不影响房间状态 */
 function syncEmptyPlayerDestroyTimer(room) {
-  if (!room || !rooms.has(String(room.id))) return
-  if (socketCount(room) > 0) {
-    clearEmptyPlayerTimeout(room)
-    return
-  }
-  if (room.emptyPlayerTimeout) return
-  room.emptyPlayerTimeout = setTimeout(() => {
-    room.emptyPlayerTimeout = null
-    const r = getRoom(room.id)
-    if (!r) return
-    if (socketCount(r) > 0) return
-    addMessage(r, '【系统】房间内无人超过 1 分钟，房间已关闭。')
-    broadcastRoom(r, 'messages', { list: r.messages })
-    dismissRoom(r)
-  }, 60000)
+  if (!room) return
+  clearEmptyPlayerTimeout(room)
 }
 
 function roomStatsPayload(room) {
@@ -200,6 +192,7 @@ function beginBettingRound(room, opts = {}) {
   room.currentRound += 1
   clearRoomTimers(room)
   resetRoundBets(room)
+  addMessageImage(room, 'be.jpg')
   addMessage(room, `【系统】游戏开始，请玩家在 ${room.betSeconds || 30} 秒内完成下注。`)
   broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
@@ -700,6 +693,8 @@ io.on('connection', (socket) => {
     clearRoomTimers(room)
     room.phase = 'closed'
     room.timerLeft = 0
+    addMessageImage(room, 'ov.jpg')
+    broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     broadcastRoom(room, 'roundClosed')
     cb?.({ ok: true })

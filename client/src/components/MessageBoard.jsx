@@ -42,6 +42,10 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
             <li key={`d-${m.t}-${i}`} className="list-none py-1">
               <hr className="border-zinc-600" />
             </li>
+          ) : m.image ? (
+            <li key={`${m.t}-${i}`} className="list-none">
+              <img src={`/${m.image}`} alt="" className="max-w-full rounded" />
+            </li>
           ) : (
             <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
               {displayMessage(m.text)}
