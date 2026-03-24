@@ -375,7 +375,7 @@ io.on('connection', (socket) => {
     if (typeof cb !== 'function') return
     const tr = Number(totalRounds || 10)
     const mb = Number(maxBet || 200)
-    const bs = Number(betSeconds || 30)
+    const bs = betSeconds != null ? Number(betSeconds) : 30
     if (!username || !tr || !mb) {
       cb({ ok: false, error: '参数不完整' })
       return
