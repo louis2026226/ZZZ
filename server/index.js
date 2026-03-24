@@ -221,7 +221,7 @@ function digitKindsUsedBySocket(room, sid) {
 function settleRound(room, drawNumber) {
   const num = normalizeLuckyNumber(drawNumber)
   if (num == null) return
-  addMessageImage(room, `${num}.jpg`)
+  addMessageImage(room, `${num}.svg`)
   addMessage(room, `【系统】房主公布幸运号：${num}`)
   const owner = room.adminUsername
   ensureBStats(owner)
