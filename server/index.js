@@ -502,7 +502,7 @@ io.on('connection', (socket) => {
     const tr = Number(totalRounds)
     const mb = Number(maxBet)
     const bs = Number(betSeconds || 30)
-    if (tr < 1 || mb < 1 || ![10, 30, 60].includes(bs)) {
+    if (tr < 1 || mb < 1 || ![30, 60].includes(bs)) {
       cb({ ok: false, error: '参数无效' })
       return
     }

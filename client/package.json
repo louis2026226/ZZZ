@@ -1,13 +1,14 @@
 {
   "name": "room-game-client",
   "private": true,
-  "version": "1.0.51",
+  "version": "1.0.52",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "build:watch": "vite build --watch",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "husky"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -17,9 +18,18 @@
     "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.4.49",
+    "prettier": "^3.8.1",
     "tailwindcss": "^3.4.16",
     "vite": "^6.0.3"
   }

@@ -615,7 +615,7 @@ export default function AdminRoom() {
               <div>
                 <label className="block text-sm text-zinc-400">下注倒计时（秒）</label>
                 <div className="mt-2 flex gap-2">
-                  {[10, 30, 60].map((n) => (
+                  {[30, 60].map((n) => (
                     <button
                       key={n}
                       type="button"

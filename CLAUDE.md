@@ -28,7 +28,7 @@ Two main user roles:
 
 ### 2. Real-Time & UI Standards
 - **Message Board**: Occupies the top 40% of the screen. Must support `overflow-y: auto` and historical scroll.
-- **Timer**: A yellow progress bar at the top, typically 30 seconds (configurable to 10, 30, or 60 seconds by admin).
+- **Timer**: A yellow progress bar at the top, typically 30 seconds (configurable to 30 or 60 seconds by admin).
 - **Sync**: All bets and results must be broadcasted via Socket.IO to ALL users in the room immediately.
 - **Settlement**: After Admin enters the winning number (1-4), calculate Win/Loss for every player and display in the Message Board.
 
