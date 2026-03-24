@@ -153,7 +153,7 @@ function beginBettingRound(room, opts = {}) {
   clearRoomTimers(room)
   resetRoundBets(room)
   addMessageImage(room, 'be.jpg')
-  addMessage(room, `【系统】游戏开始，（${room.baolu || '???'}）`)
+  addMessage(room, `【系统】游戏开始（${room.baolu || '???'}）`)
   broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
   broadcastRoom(room, 'gameStart', {})

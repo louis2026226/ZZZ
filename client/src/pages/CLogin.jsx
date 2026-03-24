@@ -71,7 +71,7 @@ export default function CLogin() {
           进入房间
         </button>
         <div className="mt-[100px] text-center text-sm text-zinc-500">
-          V1.0.89
+          V1.0.90
         </div>
       </form>
     </div>

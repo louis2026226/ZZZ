@@ -8,6 +8,20 @@ function displayMessage(text) {
   )
 }
 
+function renderText(text) {
+  if (!text) return text
+  const displayed = displayMessage(text)
+  if (text.startsWith('【答题】')) {
+    const parts = displayed.split(' | ')
+    if (parts.length >= 3) {
+      const prefix = parts.slice(0, -1).join(' | ')
+      const amt = parts[parts.length - 1]
+      return <>{prefix} | <span className="text-yellow-400">{amt}</span></>
+    }
+  }
+  return displayed
+}
+
 function lineClass(text) {
   if (!text) return 'text-zinc-100'
   if (text.includes('游戏开始')) return 'text-emerald-400'
@@ -51,7 +65,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
             </li>
           ) : m.text?.includes('离开房间') ? null : (
             <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
-              {displayMessage(m.text)}
+              {renderText(m.text)}
             </li>
           )
         )}

@@ -340,6 +340,10 @@ export default function AdminRoom() {
   function onCreate(e) {
     e.preventDefault()
     setErr('')
+    if (!/^\d{3}$/.test(baoluInput.trim())) {
+      setErr('请输入宝路')
+      return
+    }
     const bUser = sessionStorage.getItem('bUser')
     const s = socketRef.current
     if (!s) return
