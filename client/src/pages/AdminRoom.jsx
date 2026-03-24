@@ -149,6 +149,7 @@ export default function AdminRoom() {
   const [totalRounds, setTotalRounds] = useState(10)
   const [maxBet, setMaxBet] = useState(200)
   const [betSeconds, setBetSeconds] = useState(30)
+  const [timerEnabled, setTimerEnabled] = useState(true)
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [messages, setMessages] = useState([])
   const [playerCount, setPlayerCount] = useState(0)
@@ -345,7 +346,7 @@ export default function AdminRoom() {
         username: bUser,
         totalRounds: Number(totalRounds),
         maxBet: Number(maxBet),
-        betSeconds: Number(betSeconds),
+        betSeconds: Number(timerEnabled ? betSeconds : 0),
       },
       (res) => {
         if (!res?.ok) {
@@ -625,25 +626,54 @@ export default function AdminRoom() {
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-sm text-zinc-400">下注倒计时（秒）</label>
-                <div className="mt-2 flex gap-2">
-                  {[30, 60].map((n) => (
+                <div>
+                  <label className="block text-sm text-zinc-400">下注倒计时</label>
+                  <div className="mt-2 flex gap-2">
                     <button
-                      key={n}
                       type="button"
-                      onClick={() => setBetSeconds(n)}
+                      onClick={() => setTimerEnabled(false)}
                       className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
-                        betSeconds === n
+                        !timerEnabled
                           ? 'border-amber-500 bg-amber-600 text-white'
                           : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
                       }`}
                     >
-                      {n}
+                      OFF
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setTimerEnabled(true)}
+                      className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                        timerEnabled
+                          ? 'border-amber-500 bg-amber-600 text-white'
+                          : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+                      }`}
+                    >
+                      ON
+                    </button>
+                  </div>
                 </div>
-              </div>
+                {timerEnabled && (
+                  <div>
+                    <label className="block text-sm text-zinc-400">倒计时（秒）</label>
+                    <div className="mt-2 flex gap-2">
+                      {[30, 60].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setBetSeconds(n)}
+                          className={`flex-1 rounded-lg border py-2 text-sm font-medium ${
+                            betSeconds === n
+                              ? 'border-amber-500 bg-amber-600 text-white'
+                              : 'border-zinc-600 bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               <div>
                 <label className="block text-sm text-zinc-400">单注下注上限金额</label>
                 <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">

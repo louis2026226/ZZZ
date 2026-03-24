@@ -167,21 +167,29 @@ function startBettingTimer(room) {
   const total = room.betSeconds || 30
   room.timerLeft = total
   broadcastRoom(room, 'timer', { left: room.timerLeft, total })
-  room.timerInterval = setInterval(() => {
-    room.timerLeft -= 1
-    broadcastRoom(room, 'timer', { left: room.timerLeft, total })
-    if (room.timerLeft <= 0) {
-      clearInterval(room.timerInterval)
-      room.timerInterval = null
-      room.phase = 'closed'
-      broadcastRoom(room, 'roundClosed', {})
-      addMessage(
-        room,
-        `【系统】第 ${room.currentRound} / ${room.totalRounds} 局准备中，等待管理员公布幸运号。`
-      )
-      broadcastRoom(room, 'messages', { list: room.messages })
-    }
-  }, 1000)
+  const total = room.betSeconds || 0
+  if (total > 0) {
+    room.timerInterval = setInterval(() => {
+      room.timerLeft -= 1
+      broadcastRoom(room, 'timer', { left: room.timerLeft, total })
+      if (room.timerLeft <= 0) {
+        clearInterval(room.timerInterval)
+        room.timerInterval = null
+        room.phase = 'closed'
+        broadcastRoom(room, 'roundClosed', {})
+        addMessage(
+          room,
+          `【系统】第 ${room.currentRound} / ${room.totalRounds} 局准备中，等待管理员公布幸运号。`
+        )
+        broadcastRoom(room, 'messages', { list: room.messages })
+      }
+    }, 1000)
+  } else {
+    room.timerLeft = 0
+    broadcastRoom(room, 'timer', { left: 0, total: 0 })
+    room.phase = 'closed'
+    broadcastRoom(room, 'roundClosed', {})
+  }
 }
 
 function beginBettingRound(room, opts = {}) {
@@ -193,7 +201,7 @@ function beginBettingRound(room, opts = {}) {
   clearRoomTimers(room)
   resetRoundBets(room)
   addMessageImage(room, 'be.jpg')
-  addMessage(room, `【系统】游戏开始，请玩家在 ${room.betSeconds || 30} 秒内完成下注。`)
+  addMessage(room, `【系统】游戏开始，请玩家等待管理员公布幸运号。`)
   broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
   broadcastRoom(room, 'gameStart', {})

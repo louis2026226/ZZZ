@@ -44,7 +44,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
             </li>
           ) : m.image ? (
             <li key={`${m.t}-${i}`} className="list-none">
-              <img src={`/${m.image}`} alt="" className="max-w-full rounded" />
+              <img src={`/${m.image}`} alt="" className="max-w-[120px] max-h-[120px]" />
             </li>
           ) : (
             <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
