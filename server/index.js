@@ -260,6 +260,13 @@ function settleRound(room, drawNumber) {
     return
   }
 
+  // 无计时器时不自动开始下一局，等房主手动点上课
+  if (!room.betSeconds) {
+    room.phase = 'idle'
+    broadcastRoom(room, 'newRoundWait', { currentRound: room.currentRound, totalRounds: room.totalRounds })
+    return
+  }
+
   room.phase = 'countdown'
   let t = 3
   broadcastRoom(room, 'nextRoundCountdown', { left: 3 })
