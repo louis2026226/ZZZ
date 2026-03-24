@@ -1,10 +1,12 @@
-const express = require('express')
-const { createServer } = require('http')
-const { Server } = require('socket.io')
-const cors = require('cors')
-const path = require('path')
-const fs = require('fs')
+import express from 'express'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
+import cors from 'cors'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 
+const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const PORT = Number(process.env.PORT) || 3000
 const _sap = process.env.SUPER_ADMIN_PORT
