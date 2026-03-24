@@ -235,7 +235,7 @@ export default function PlayerRoom() {
     }
   }, [nav])
 
-  const betting = phase === 'betting' && timerLeft > 0
+  const betting = phase === 'betting'
   const showTimer = phase === 'betting' && timerLeft > 0
 
   function toggleNum(n) {

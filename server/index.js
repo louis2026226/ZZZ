@@ -184,8 +184,7 @@ function startBettingTimer(room) {
   } else {
     room.timerLeft = 0
     broadcastRoom(room, 'timer', { left: 0, total: 0 })
-    room.phase = 'closed'
-    broadcastRoom(room, 'roundClosed', {})
+    // 无计时器时保持 betting 阶段，等待管理员手动点下课
   }
 }
 

@@ -196,7 +196,7 @@ export default function AdminRoom() {
 
   useEffect(() => {
     if (!inRoomId || !isHost || gameEnded || phase !== 'closed') return
-    setSettleOpen(true)
+    // settleOpen 由 roundClosed 事件触发（含延迟），此处不重复打开
   }, [inRoomId, isHost, gameEnded, phase, currentRound])
 
   useEffect(() => {
@@ -282,7 +282,9 @@ export default function AdminRoom() {
         setTimerLeft(0)
         const bu = sessionStorage.getItem('bUser') || ''
         const host = hostUsernameRef.current
-        if (bu && host && bu === host) setSettleOpen(true)
+        if (bu && host && bu === host) {
+          setTimeout(() => setSettleOpen(true), 500)
+        }
       })
       s.on('newRoundWait', (p) => {
         setPhase('idle')
@@ -407,7 +409,7 @@ export default function AdminRoom() {
   }
 
   const showTimer = phase === 'betting' && timerLeft > 0
-  const betting = phase === 'betting' && timerLeft > 0
+  const betting = phase === 'betting'
   const nums = useMemo(
     () => [
       { value: 1, label: '1' },
