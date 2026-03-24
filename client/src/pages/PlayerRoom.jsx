@@ -7,6 +7,11 @@ import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 
+function playSound(src) {
+  const a = new Audio(src)
+  a.play().catch(() => {})
+}
+
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
   if (!Number.isFinite(n) || n < 10) return []
@@ -482,7 +487,7 @@ export default function PlayerRoom() {
           <button
             type="button"
             disabled={!betting}
-            onClick={onConfirm}
+            onClick={() => { playSound('/button.mp3'); onConfirm() }}
             className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
             确定

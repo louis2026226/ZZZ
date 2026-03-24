@@ -7,6 +7,11 @@ import MessageBoard from '../components/MessageBoard.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 
+function playSound(src) {
+  const a = new Audio(src)
+  a.play().catch(() => {})
+}
+
 function pickRandomAmounts(maxBet) {
   const n = Number(maxBet)
   if (!Number.isFinite(n) || n < 10) return []
@@ -890,7 +895,7 @@ export default function AdminRoom() {
           {isHost && !gameEnded && canStart ? (
             <button
               type="button"
-              onClick={onStart}
+              onClick={() => { playSound('/button.mp3'); onStart() }}
               className="flex-1 rounded-lg bg-amber-600 py-3 text-sm font-medium hover:bg-amber-500"
             >
               上课
@@ -899,7 +904,7 @@ export default function AdminRoom() {
           {isHost && !gameEnded ? (
             <button
               type="button"
-              onClick={phase === 'betting' ? onEndGame : undefined}
+              onClick={phase === 'betting' ? () => { playSound('/me.mp3'); onEndGame() } : undefined}
               disabled={phase !== 'betting'}
               className="flex-1 rounded-lg py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
             >
@@ -918,7 +923,7 @@ export default function AdminRoom() {
           <button
             type="button"
             disabled={!betting}
-            onClick={onBetConfirm}
+            onClick={() => { playSound('/button.mp3'); onBetConfirm() }}
             className="flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
             确定
