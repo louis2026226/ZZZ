@@ -150,6 +150,7 @@ export default function AdminRoom() {
   const [maxBet, setMaxBet] = useState(200)
   const [betSeconds, setBetSeconds] = useState(30)
   const [timerEnabled, setTimerEnabled] = useState(false)
+  const [baoluInput, setBaoluInput] = useState('')
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [messages, setMessages] = useState([])
   const [playerCount, setPlayerCount] = useState(0)
@@ -349,6 +350,7 @@ export default function AdminRoom() {
         totalRounds: Number(totalRounds),
         maxBet: Number(maxBet),
         betSeconds: Number(timerEnabled ? betSeconds : 0),
+        baolu: baoluInput.trim(),
       },
       (res) => {
         if (!res?.ok) {
@@ -357,6 +359,7 @@ export default function AdminRoom() {
         }
         setCreateOpen(false)
         setErr('')
+        setBaoluInput('')
         fetchMyRooms()
       }
     )
@@ -678,6 +681,19 @@ export default function AdminRoom() {
                     </div>
                   </div>
                 )}
+              <div>
+                <label className="block text-sm text-zinc-400">请输入宝路</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={3}
+                  value={baoluInput}
+                  onChange={(e) => setBaoluInput(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  placeholder="3位数字"
+                  className="mt-2 w-full rounded-lg border border-zinc-600 bg-zinc-800 px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-500 tracking-widest"
+                />
+              </div>
               <div>
                 <label className="block text-sm text-zinc-400">单注下注上限金额</label>
                 <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">

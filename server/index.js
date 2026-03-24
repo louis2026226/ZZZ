@@ -53,6 +53,7 @@ function makeRoom(adminUsername) {
     totalRounds: 0,
     maxBet: 0,
     betSeconds: 30,
+    baolu: '',
     currentRound: 0,
     gameEnded: false,
     phase: 'idle',
@@ -152,7 +153,7 @@ function beginBettingRound(room, opts = {}) {
   clearRoomTimers(room)
   resetRoundBets(room)
   addMessageImage(room, 'be.jpg')
-  addMessage(room, `【系统】游戏开始，请玩家等待管理员公布幸运号。`)
+  addMessage(room, `【系统】游戏开始，${room.baolu || '???'}`)
   broadcastRoom(room, 'messages', { list: room.messages })
   startBettingTimer(room)
   broadcastRoom(room, 'gameStart', {})
@@ -268,6 +269,7 @@ function settleRound(room, drawNumber) {
     addMessage(room, `【本局统计】${statLines.join('；')}`)
   }
   addMessageDivider(room)
+  room.baolu = (room.baolu || '') + String(num)
   broadcastRoom(room, 'messages', { list: room.messages })
   broadcastRoom(room, 'roundResult', { drawNumber: num })
 
@@ -380,11 +382,12 @@ io.on('connection', (socket) => {
     })
   })
 
-  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds }, cb) => {
+  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds, baolu }, cb) => {
     if (typeof cb !== 'function') return
     const tr = Number(totalRounds || 10)
     const mb = Number(maxBet || 200)
     const bs = betSeconds != null ? Number(betSeconds) : 30
+    const bl = /^\d{3}$/.test(String(baolu || '')) ? String(baolu) : ''
     if (!username || !tr || !mb) {
       cb({ ok: false, error: '参数不完整' })
       return
@@ -393,6 +396,7 @@ io.on('connection', (socket) => {
     room.totalRounds = tr
     room.maxBet = mb
     room.betSeconds = bs
+    room.baolu = bl
     room.currentRound = 0
     room.gameEnded = false
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
