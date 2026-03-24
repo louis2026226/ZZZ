@@ -67,8 +67,8 @@ function buildRoundRecords(messages, myName) {
   for (const m of messages || []) {
     if (!m?.text || m.divider) continue
     const t = m.text
-    if (t.startsWith('【下注】')) {
-      const segs = t.replace('【下注】', '').split(' | ')
+    if (t.startsWith('【答题】')) {
+      const segs = t.replace('【答题】', '').split(' | ')
       if (segs.length >= 3) {
         const uname = segs[0]?.trim()
         const numTxt = segs[1]?.replace('选号', '').trim()

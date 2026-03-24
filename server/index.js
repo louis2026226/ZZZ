@@ -485,9 +485,13 @@ io.on('connection', (socket) => {
     }
     const raw = Array.isArray(numbers) ? numbers : []
     const digits = []
+    const seenDigits = new Set()
     for (const x of raw) {
       const d = normalizeBetDigit(x)
-      if (d != null) digits.push(d)
+      if (d != null && !seenDigits.has(d)) {
+        seenDigits.add(d)
+        digits.push(d)
+      }
     }
     const smile = Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
     if (digits.length < 1 || digits.length > 3) {
@@ -513,7 +517,7 @@ io.on('connection', (socket) => {
       showSmile: smile,
     })
     room.playerBets.set(socket.id, list)
-    const msg = `【下注】${username} | 选号 ${digits.join('')}${smile ? '🙂' : ''} | ${amt}`
+    const msg = `【答题】${username} | 选号 ${digits.join('')}${smile ? '🙂' : ''} | ${amt}`
     addMessage(room, msg)
     broadcastRoom(room, 'messages', { list: room.messages })
     reply({ ok: true })
