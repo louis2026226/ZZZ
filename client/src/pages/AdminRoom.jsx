@@ -887,41 +887,39 @@ export default function AdminRoom() {
 
         <TimerBar visible={showTimer} left={timerLeft} total={timerTotal} inline />
         <div className="flex gap-2">
-          <div className="flex shrink-0 gap-2">
-            {isHost && !gameEnded && canStart ? (
-              <button
-                type="button"
-                onClick={onStart}
-                className="rounded-lg bg-amber-600 px-4 py-3 text-sm font-medium hover:bg-amber-500"
-              >
-                上课
-              </button>
-            ) : null}
-            {isHost && !gameEnded ? (
-              <button
-                type="button"
-                onClick={phase === 'betting' ? onEndGame : undefined}
-                disabled={phase !== 'betting'}
-                className="rounded-lg px-4 py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
-              >
-                下课
-              </button>
-            ) : null}
-            {isHost && gameEnded ? (
-              <button
-                type="button"
-                onClick={onDismiss}
-                className="rounded-lg bg-red-700 px-4 py-3 text-sm font-medium hover:bg-red-600"
-              >
-                解散
-              </button>
-            ) : null}
-          </div>
+          {isHost && !gameEnded && canStart ? (
+            <button
+              type="button"
+              onClick={onStart}
+              className="flex-1 rounded-lg bg-amber-600 py-3 text-sm font-medium hover:bg-amber-500"
+            >
+              上课
+            </button>
+          ) : null}
+          {isHost && !gameEnded ? (
+            <button
+              type="button"
+              onClick={phase === 'betting' ? onEndGame : undefined}
+              disabled={phase !== 'betting'}
+              className="flex-1 rounded-lg py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
+            >
+              下课
+            </button>
+          ) : null}
+          {isHost && gameEnded ? (
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="flex-1 rounded-lg bg-red-700 py-3 text-sm font-medium hover:bg-red-600"
+            >
+              解散
+            </button>
+          ) : null}
           <button
             type="button"
             disabled={!betting}
             onClick={onBetConfirm}
-            className="min-w-0 flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
+            className="flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
           >
             确定
           </button>
