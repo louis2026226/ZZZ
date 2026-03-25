@@ -83,6 +83,15 @@ async function initDb() {
       settled_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS room_members (
+      id         SERIAL      PRIMARY KEY,
+      room_id    INT         NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      c_username TEXT        NOT NULL,
+      joined_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE(room_id, c_username)
+    )
+  `)
   console.log('[db] Tables ready')
 }
 
@@ -486,6 +495,12 @@ io.on('connection', (socket) => {
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     syncEmptyPlayerDestroyTimer(room)
+    if (pool && room.dbRoomId) {
+      pool.query(
+        'INSERT INTO room_members (room_id, c_username) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [room.dbRoomId, cu]
+      ).catch((e) => console.error('[db] room_members insert error', e.message))
+    }
     cb({ ok: true, room: { id: room.id, adminUsername: room.adminUsername, totalRounds: room.totalRounds, maxBet: room.maxBet, betSeconds: room.betSeconds, currentRound: room.currentRound, messages: room.messages, phase: room.phase, gameEnded: room.gameEnded, roomName: room.roomName || '' } })
   }
 
@@ -785,10 +800,10 @@ io.on('connection', (socket) => {
           a.created_at AS "createdAt",
           COALESCE(SUM(r.settled_rounds), 0)::int AS "totalRoundsSettled",
           COALESCE(SUM(r.total_pnl), 0)::int      AS "selfPnL",
-          COUNT(DISTINCT b.c_username)::int        AS "distinctCCount"
+          COUNT(DISTINCT m.c_username)::int        AS "distinctCCount"
         FROM b_accounts a
-        LEFT JOIN rooms r ON r.b_username = a.username
-        LEFT JOIN bets  b ON b.room_id    = r.id
+        LEFT JOIN rooms r        ON r.b_username = a.username
+        LEFT JOIN room_members m ON m.room_id    = r.id
         GROUP BY a.username, a.status, a.authorized, a.created_at
         ORDER BY a.created_at DESC
       `)
@@ -808,7 +823,7 @@ io.on('connection', (socket) => {
       cb({ ok: true, list })
     } catch (e) {
       console.error('[db] super_admin_list_b error', e.message)
-      cb({ ok: false, error: `查询失败: ${e.message}` })
+      cb({ ok: false, error: '查询失败' })
     }
   })
 
