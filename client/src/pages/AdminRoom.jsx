@@ -820,7 +820,7 @@ export default function AdminRoom() {
       </div>
 
       <div className="flex flex-1 flex-col gap-6">
-        <div>
+        {!isHost && <div>
           <p className="mb-2 text-sm text-zinc-400">
             当前选号：<span className="text-amber-400">{selectedNumText}</span>
           </p>
@@ -863,9 +863,9 @@ export default function AdminRoom() {
               )
             })}
           </div>
-        </div>
+        </div>}
 
-        <div>
+        {!isHost && <div>
           <p className="mb-2 text-sm text-zinc-400">
             选择积分：<span className="text-amber-400">{pickedAmount ?? '-'}</span>
           </p>
@@ -935,7 +935,7 @@ export default function AdminRoom() {
               </button>
             </div>
           </div>
-        </div>
+        </div>}
 
         {betAlert ? <p className="text-sm text-red-400">{betAlert}</p> : null}
 
@@ -948,7 +948,7 @@ export default function AdminRoom() {
               onClick={() => { sound('me'); onStart() }}
               className="flex-1 rounded-lg py-3 text-sm font-medium bg-amber-600 hover:bg-amber-500 disabled:bg-amber-900 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              上课
+              开始答题
             </button>
           ) : null}
           {isHost && !gameEnded ? (
@@ -958,17 +958,19 @@ export default function AdminRoom() {
               disabled={phase !== 'betting'}
               className="flex-1 rounded-lg py-3 text-sm font-medium bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-800"
             >
-              下课
+              结束答题
             </button>
           ) : null}
-          <button
-            type="button"
-            disabled={!betting}
-            onClick={() => { sound('button'); onBetConfirm() }}
-            className="flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
-          >
-            确定
-          </button>
+          {!isHost ? (
+            <button
+              type="button"
+              disabled={!betting}
+              onClick={() => { sound('button'); onBetConfirm() }}
+              className="flex-1 rounded-lg bg-emerald-600 py-3 font-medium disabled:cursor-not-allowed disabled:opacity-40 hover:bg-emerald-500"
+            >
+              确定
+            </button>
+          ) : null}
         </div>
 
         <p className="text-xs text-zinc-500">
