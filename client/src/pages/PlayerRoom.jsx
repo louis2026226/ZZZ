@@ -164,24 +164,26 @@ export default function PlayerRoom() {
     const s = createSocket()
     socketRef.current = s
 
-    s.emit('c_join_room', { username: cUser, roomId: rid }, (res) => {
-      if (!res?.ok) {
-        setJoinErr(res?.error || '进入房间失败')
-        s.removeAllListeners()
-        s.disconnect()
-        socketRef.current = null
-        setTimeout(() => nav('/login/c'), 2000)
-        return
-      }
-      setRoomId(res.room.id)
-      setMessages(res.room.messages || [])
-      setMaxBet(res.room.maxBet || 0)
-      setAmounts(pickRandomAmounts(res.room.maxBet || 0))
-      if (res.room.currentRound != null) setCurrentRound(res.room.currentRound)
-      if (res.room.totalRounds != null) setTotalRoundsState(res.room.totalRounds)
-      if (res.room.phase) setPhase(res.room.phase)
-      if (res.room.gameEnded) setGameEnded(true)
-      if (res.room.roomName != null) setRoomName(res.room.roomName)
+    s.once('connect', () => {
+      s.emit('c_join_room', { username: cUser, roomId: rid }, (res) => {
+        if (!res?.ok) {
+          setJoinErr(res?.error || '进入房间失败')
+          s.removeAllListeners()
+          s.disconnect()
+          socketRef.current = null
+          setTimeout(() => nav('/login/c'), 2000)
+          return
+        }
+        setRoomId(res.room.id)
+        setMessages(res.room.messages || [])
+        setMaxBet(res.room.maxBet || 0)
+        setAmounts(pickRandomAmounts(res.room.maxBet || 0))
+        if (res.room.currentRound != null) setCurrentRound(res.room.currentRound)
+        if (res.room.totalRounds != null) setTotalRoundsState(res.room.totalRounds)
+        if (res.room.phase) setPhase(res.room.phase)
+        if (res.room.gameEnded) setGameEnded(true)
+        if (res.room.roomName != null) setRoomName(res.room.roomName)
+      })
     })
 
     s.on('messages', ({ list }) => setMessages(list || []))
