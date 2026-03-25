@@ -800,23 +800,14 @@ export default function AdminRoom() {
         onStatsClick={() => setStatsOpen(true)}
         onBack={backToLobby}
       />
-      {isHost ? (
-        <button
-          type="button"
-          onClick={() => { sound('button'); onDismiss() }}
-          className="fixed bottom-6 left-3 z-50 rounded-lg bg-red-800 px-4 py-2.5 text-sm text-white shadow hover:bg-red-700"
-        >
-          解散房间
-        </button>
-      ) : null}
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}
         currentRound={currentRound}
         totalRounds={totalRoundsState}
         roomName={roomName}
+        onDismiss={isHost ? () => { sound('button'); onDismiss() } : undefined}
       />
-
       <div className="relative mb-4 shrink-0">
         <MessageBoard messages={messages} className={boardClass} />
         {isHost && phase === 'betting' ? (
@@ -991,6 +982,7 @@ export default function AdminRoom() {
             <span className={`ml-3 text-lg font-bold ${roomTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {roomTotalPnL >= 0 ? '+' : ''}{roomTotalPnL}
             </span>
+            <div className="mt-1 text-xs text-zinc-500">房号 <span className="text-zinc-300">{roomId}</span></div>
           </div>
         ) : null}
 
