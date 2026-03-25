@@ -4,7 +4,11 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
+import crypto from 'crypto'
 import { fileURLToPath } from 'url'
+import pg from 'pg'
+
+const { Pool } = pg
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -20,10 +24,65 @@ if (_sap === '0' || _sap === 'false') {
   SUPER_ADMIN_PORT = 3390
 }
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin888'
-const SUPER_ADMIN_USER = 'admin'
-const SUPER_ADMIN_PASS = '123456'
+const SUPER_ADMIN_USER = process.env.SUPER_ADMIN_USER || 'admin'
+const SUPER_ADMIN_PASS = process.env.SUPER_ADMIN_PASS || '123456'
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || '*'
 
+// ─── PostgreSQL ───────────────────────────────────────────────────────────────
+const pool = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
+  : null
+
+function hashPassword(pw) {
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.scryptSync(pw, salt, 64).toString('hex')
+  return `${salt}:${hash}`
+}
+
+function verifyPassword(pw, stored) {
+  try {
+    const [salt, hash] = stored.split(':')
+    return crypto.timingSafeEqual(crypto.scryptSync(pw, salt, 64), Buffer.from(hash, 'hex'))
+  } catch {
+    return false
+  }
+}
+
+async function initDb() {
+  if (!pool) return
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS b_accounts (
+      username      TEXT        PRIMARY KEY,
+      password_hash TEXT        NOT NULL,
+      status        TEXT        NOT NULL DEFAULT 'active',
+      authorized    BOOLEAN     NOT NULL DEFAULT true,
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS rooms (
+      id             SERIAL      PRIMARY KEY,
+      room_code      TEXT        NOT NULL,
+      b_username     TEXT        NOT NULL,
+      total_rounds   INT         NOT NULL DEFAULT 0,
+      max_bet        INT         NOT NULL DEFAULT 0,
+      total_pnl      INT         NOT NULL DEFAULT 0,
+      settled_rounds INT         NOT NULL DEFAULT 0,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS bets (
+      id           SERIAL      PRIMARY KEY,
+      room_id      INT         NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+      round_number INT         NOT NULL,
+      c_username   TEXT        NOT NULL,
+      numbers      TEXT        NOT NULL,
+      amount       INT         NOT NULL,
+      delta        INT         NOT NULL,
+      settled_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `)
+  console.log('[db] Tables ready')
+}
+
+// ─── Express + Socket.IO ──────────────────────────────────────────────────────
 const app = express()
 app.use(cors({ origin: CLIENT_ORIGIN === '*' ? true : CLIENT_ORIGIN.split(','), credentials: true }))
 app.use(express.json())
@@ -38,6 +97,11 @@ const io = new Server(httpServer, {
   },
 })
 
+// ─── In-memory state ──────────────────────────────────────────────────────────
+const rooms = new Map()
+const bStats = new Map()
+
+// ─── Room helpers ─────────────────────────────────────────────────────────────
 function roomKey(id) {
   return `room:${id}`
 }
@@ -66,6 +130,7 @@ function makeRoom(adminUsername) {
     messages: [],
     emptyPlayerTimeout: null,
     roomTotalPnL: 0,
+    dbRoomId: null,
   }
   rooms.set(id, room)
   return room
@@ -117,10 +182,6 @@ function playerCount(room) {
   return n
 }
 
-function socketCount(room) {
-  return room?.sockets?.size || 0
-}
-
 function clearEmptyPlayerTimeout(room) {
   if (room.emptyPlayerTimeout) {
     clearTimeout(room.emptyPlayerTimeout)
@@ -147,6 +208,7 @@ function roomStatsPayload(room) {
   }
 }
 
+// ─── Game logic ───────────────────────────────────────────────────────────────
 function beginBettingRound(room, opts = {}) {
   if (room.gameEnded) return false
   if (room.phase === 'betting') return false
@@ -189,7 +251,6 @@ function startBettingTimer(room) {
   } else {
     room.timerLeft = 0
     broadcastRoom(room, 'timer', { left: 0, total: 0 })
-    // 无计时器时保持 betting 阶段，等待管理员手动点下课
   }
 }
 
@@ -205,8 +266,6 @@ function normalizeLuckyNumber(x) {
   return null
 }
 
-// 返回赢倍数（null表示未中，负数不存在）
-// 单号（含11/22）: ×3；双号同权(12): ×1；双号偏权(112): 重号×1.5 轻号×0.5
 function calcWinMultiplier(numbers, luckyNum) {
   const counts = {}
   for (const n of numbers) counts[n] = (counts[n] || 0) + 1
@@ -235,6 +294,39 @@ function digitKindsUsedBySocket(room, sid) {
     for (const d of b.numbers) s.add(d)
   }
   return s
+}
+
+async function flushRoundToDb(room, roundNumber, playerNetDelta) {
+  if (!pool || !room.dbRoomId) return
+  try {
+    const client = await pool.connect()
+    try {
+      await client.query('BEGIN')
+      for (const [, betOrBets] of room.playerBets) {
+        const bets = Array.isArray(betOrBets) ? betOrBets : [betOrBets]
+        for (const bet of bets) {
+          const numStr = bet.numbers.join('')
+          const delta = playerNetDelta.get(bet.username) ?? 0
+          await client.query(
+            'INSERT INTO bets (room_id, round_number, c_username, numbers, amount, delta) VALUES ($1,$2,$3,$4,$5,$6)',
+            [room.dbRoomId, roundNumber, bet.username, numStr, bet.amount, delta]
+          )
+        }
+      }
+      await client.query(
+        'UPDATE rooms SET total_pnl=$1, settled_rounds=$2 WHERE id=$3',
+        [room.roomTotalPnL, room.currentRound, room.dbRoomId]
+      )
+      await client.query('COMMIT')
+    } catch (e) {
+      await client.query('ROLLBACK')
+      console.error('[db] flushRoundToDb error', e.message)
+    } finally {
+      client.release()
+    }
+  } catch (e) {
+    console.error('[db] flushRoundToDb connect error', e.message)
+  }
 }
 
 function settleRound(room, drawNumber) {
@@ -278,6 +370,9 @@ function settleRound(room, drawNumber) {
   broadcastRoom(room, 'messages', { list: room.messages })
   broadcastRoom(room, 'roundResult', { drawNumber: num })
 
+  // Fire-and-forget DB write
+  flushRoundToDb(room, room.currentRound, playerNetDelta)
+
   if (room.currentRound >= room.totalRounds) {
     room.gameEnded = true
     room.phase = 'ended'
@@ -287,17 +382,14 @@ function settleRound(room, drawNumber) {
     return
   }
 
-  // 无计时器：回 idle，等房主手动点上课
   if (!room.betSeconds) {
     room.phase = 'idle'
     broadcastRoom(room, 'newRoundWait', { currentRound: room.currentRound, totalRounds: room.totalRounds })
     return
   }
 
-  // 有计时器：选完幸运号后自动开始下一局
   beginBettingRound(room, { afterCountdown: true })
 }
-
 
 function ensureBStats(username) {
   if (!bStats.has(username)) {
@@ -310,9 +402,7 @@ function ensureBStats(username) {
   }
 }
 
-const rooms = new Map()
-const bStats = new Map()
-
+// ─── HTTP routes ──────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', rooms: rooms.size })
 })
@@ -325,20 +415,52 @@ if (fs.existsSync(distPath)) {
   })
 }
 
+// ─── Socket.IO handlers ───────────────────────────────────────────────────────
 io.on('connection', (socket) => {
-  socket.on('b_login', ({ username, password }, cb) => {
+
+  // ── B login ──────────────────────────────────────────────────────────────
+  socket.on('b_login', async ({ username, password }, cb) => {
     if (typeof cb !== 'function') return
     if (!username || !password) {
       cb({ ok: false, error: '参数不完整' })
       return
     }
-    if (password !== ADMIN_PASSWORD) {
-      cb({ ok: false, error: '密码错误' })
-      return
+    if (pool) {
+      try {
+        const { rows } = await pool.query('SELECT * FROM b_accounts WHERE username=$1', [username])
+        if (rows.length === 0) {
+          cb({ ok: false, error: '账号不存在' })
+          return
+        }
+        const acc = rows[0]
+        if (!verifyPassword(password, acc.password_hash)) {
+          cb({ ok: false, error: '密码错误' })
+          return
+        }
+        if (acc.status !== 'active') {
+          cb({ ok: false, error: '账号已停用' })
+          return
+        }
+        if (!acc.authorized) {
+          cb({ ok: false, error: '账号未授权' })
+          return
+        }
+        cb({ ok: true, username })
+      } catch (e) {
+        console.error('[db] b_login error', e.message)
+        cb({ ok: false, error: '服务器错误' })
+      }
+    } else {
+      // Fallback: env password
+      if (password !== ADMIN_PASSWORD) {
+        cb({ ok: false, error: '密码错误' })
+        return
+      }
+      cb({ ok: true, username })
     }
-    cb({ ok: true, username })
   })
 
+  // ── C join room ───────────────────────────────────────────────────────────
   function handleCJoin({ username, roomId }, cb) {
     if (typeof cb !== 'function') return
     const rid = String(roomId || '').trim()
@@ -366,7 +488,8 @@ io.on('connection', (socket) => {
   socket.on('c_login', handleCJoin)
   socket.on('c_join_room', handleCJoin)
 
-  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds, baolu, roomName }, cb) => {
+  // ── Create room ───────────────────────────────────────────────────────────
+  socket.on('b_create_room', async ({ username, totalRounds, maxBet, betSeconds, baolu, roomName }, cb) => {
     if (typeof cb !== 'function') return
     const tr = Number(totalRounds || 10)
     const mb = Number(maxBet || 200)
@@ -391,6 +514,20 @@ io.on('connection', (socket) => {
     socket.data.roomId = room.id
     socket.data.role = 'B'
     syncEmptyPlayerDestroyTimer(room)
+
+    // Write to DB (fire-and-forget, store dbRoomId)
+    if (pool) {
+      try {
+        const { rows } = await pool.query(
+          'INSERT INTO rooms (room_code, b_username, total_rounds, max_bet) VALUES ($1,$2,$3,$4) RETURNING id',
+          [room.id, username, tr, mb]
+        )
+        room.dbRoomId = rows[0].id
+      } catch (e) {
+        console.error('[db] b_create_room insert error', e.message)
+      }
+    }
+
     cb({
       ok: true,
       room: {
@@ -406,6 +543,7 @@ io.on('connection', (socket) => {
     })
   })
 
+  // ── List my rooms ─────────────────────────────────────────────────────────
   socket.on('b_list_my_rooms', ({ username }, cb) => {
     if (typeof cb !== 'function') return
     if (!username) {
@@ -413,7 +551,7 @@ io.on('connection', (socket) => {
       return
     }
     const out = []
-    for (const [id, room] of rooms) {
+    for (const [, room] of rooms) {
       if (room.adminUsername === username) {
         out.push({
           id: room.id,
@@ -431,6 +569,7 @@ io.on('connection', (socket) => {
     cb({ ok: true, rooms: out })
   })
 
+  // ── Join existing room ────────────────────────────────────────────────────
   socket.on('b_join_existing', ({ username, roomId }, cb) => {
     if (typeof cb !== 'function') return
     const rid = String(roomId || '').trim()
@@ -470,6 +609,7 @@ io.on('connection', (socket) => {
     })
   })
 
+  // ── Start round ───────────────────────────────────────────────────────────
   socket.on('b_start_round', () => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
@@ -480,6 +620,7 @@ io.on('connection', (socket) => {
     beginBettingRound(room)
   })
 
+  // ── Submit bet ────────────────────────────────────────────────────────────
   socket.on('c_submit_bet', ({ username, numbers, amount, showSmile }, cb) => {
     const reply = typeof cb === 'function' ? cb : () => {}
     const roomId = socket.data.roomId
@@ -503,7 +644,6 @@ io.on('connection', (socket) => {
       }
     }
     const smile = Boolean(showSmile) || raw.some((x) => x === 'smile' || x === '🙂')
-    // 1-3个号码，最多2个不同数字
     if (digits.length < 1 || digits.length > 3 || distinctSet.size < 1 || distinctSet.size > 2) {
       reply({ ok: false, error: '选号无效' })
       return
@@ -520,12 +660,7 @@ io.on('connection', (socket) => {
       return
     }
     const list = [...getSocketBetList(room, socket.id)]
-    list.push({
-      username,
-      numbers: digits,
-      amount: amt,
-      showSmile: smile,
-    })
+    list.push({ username, numbers: digits, amount: amt, showSmile: smile })
     room.playerBets.set(socket.id, list)
     const displayStr = distinctSet.size === 1 ? String([...distinctSet][0]) : digits.join('')
     const msg = `【答题】${username} | 选号 ${displayStr}${smile ? '🙂' : ''} | ${amt}`
@@ -534,6 +669,7 @@ io.on('connection', (socket) => {
     reply({ ok: true })
   })
 
+  // ── Settle ────────────────────────────────────────────────────────────────
   socket.on('b_settle', ({ drawNumber }, cb) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
@@ -561,6 +697,7 @@ io.on('connection', (socket) => {
     cb?.({ ok: true })
   })
 
+  // ── End round ─────────────────────────────────────────────────────────────
   socket.on('b_end_round', (cb) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
@@ -588,6 +725,7 @@ io.on('connection', (socket) => {
     cb?.({ ok: true })
   })
 
+  // ── Ring bell ─────────────────────────────────────────────────────────────
   socket.on('b_ring_bell', () => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
@@ -599,6 +737,7 @@ io.on('connection', (socket) => {
     broadcastRoom(room, 'bellRing', {})
   })
 
+  // ── Dismiss room ──────────────────────────────────────────────────────────
   socket.on('b_dismiss_room', (cb) => {
     if (typeof cb !== 'function') return
     const roomId = socket.data.roomId
@@ -616,6 +755,151 @@ io.on('connection', (socket) => {
     dismissRoom(room)
   })
 
+  // ── Super admin login ─────────────────────────────────────────────────────
+  socket.on('super_admin_login', ({ username, password }, cb) => {
+    if (typeof cb !== 'function') return
+    if (username === SUPER_ADMIN_USER && password === SUPER_ADMIN_PASS) {
+      cb({ ok: true })
+    } else {
+      cb({ ok: false, error: '用户名或密码错误' })
+    }
+  })
+
+  // ── Super admin list B accounts ───────────────────────────────────────────
+  socket.on('super_admin_list_b', async (_, cb) => {
+    if (typeof cb !== 'function') return
+    if (!pool) {
+      cb({ ok: false, error: '数据库未连接' })
+      return
+    }
+    try {
+      const { rows: bRows } = await pool.query(`
+        SELECT
+          a.username,
+          a.status,
+          a.authorized,
+          a.created_at AS "createdAt",
+          COALESCE(SUM(r.settled_rounds), 0)::int AS "totalRoundsSettled",
+          COALESCE(SUM(r.total_pnl), 0)::int      AS "selfPnL",
+          COUNT(DISTINCT b.c_username)::int        AS "distinctCCount"
+        FROM b_accounts a
+        LEFT JOIN rooms r ON r.b_username = a.username
+        LEFT JOIN bets  b ON b.room_id    = r.id
+        GROUP BY a.username, a.status, a.authorized, a.created_at
+        ORDER BY a.created_at DESC
+      `)
+      // per-C rows for each B
+      const { rows: cRows } = await pool.query(`
+        SELECT r.b_username, b.c_username, SUM(b.delta)::int AS total
+        FROM bets b
+        JOIN rooms r ON b.room_id = r.id
+        GROUP BY r.b_username, b.c_username
+      `)
+      const cMap = {}
+      for (const cr of cRows) {
+        if (!cMap[cr.b_username]) cMap[cr.b_username] = []
+        cMap[cr.b_username].push({ username: cr.c_username, total: cr.total })
+      }
+      const list = bRows.map((r) => ({ ...r, cRows: cMap[r.username] || [] }))
+      cb({ ok: true, list })
+    } catch (e) {
+      console.error('[db] super_admin_list_b error', e.message)
+      cb({ ok: false, error: '查询失败' })
+    }
+  })
+
+  // ── Super admin update B account ──────────────────────────────────────────
+  socket.on('super_admin_update_b', async ({ username, status, authorized }, cb) => {
+    if (typeof cb !== 'function') return
+    if (!pool) {
+      cb({ ok: false, error: '数据库未连接' })
+      return
+    }
+    if (!username) {
+      cb({ ok: false, error: '参数不完整' })
+      return
+    }
+    try {
+      const sets = []
+      const vals = []
+      if (status !== undefined) {
+        vals.push(status)
+        sets.push(`status=$${vals.length}`)
+      }
+      if (authorized !== undefined) {
+        vals.push(authorized)
+        sets.push(`authorized=$${vals.length}`)
+      }
+      if (sets.length === 0) {
+        cb({ ok: false, error: '无更新字段' })
+        return
+      }
+      vals.push(username)
+      await pool.query(`UPDATE b_accounts SET ${sets.join(',')} WHERE username=$${vals.length}`, vals)
+      cb({ ok: true })
+    } catch (e) {
+      console.error('[db] super_admin_update_b error', e.message)
+      cb({ ok: false, error: '更新失败' })
+    }
+  })
+
+  // ── Super admin create B account ──────────────────────────────────────────
+  socket.on('super_admin_create_b', async ({ username, password }, cb) => {
+    if (typeof cb !== 'function') return
+    if (!pool) {
+      cb({ ok: false, error: '数据库未连接' })
+      return
+    }
+    const u = String(username || '').trim()
+    const p = String(password || '').trim()
+    if (!u || u.length > 20) {
+      cb({ ok: false, error: '用户名须 1-20 个字符' })
+      return
+    }
+    if (p.length < 4) {
+      cb({ ok: false, error: '密码至少 4 个字符' })
+      return
+    }
+    try {
+      const hash = hashPassword(p)
+      await pool.query(
+        'INSERT INTO b_accounts (username, password_hash) VALUES ($1,$2)',
+        [u, hash]
+      )
+      cb({ ok: true })
+    } catch (e) {
+      if (e.code === '23505') {
+        cb({ ok: false, error: '用户名已存在' })
+      } else {
+        console.error('[db] super_admin_create_b error', e.message)
+        cb({ ok: false, error: '创建失败' })
+      }
+    }
+  })
+
+  // ── Super admin delete B account ──────────────────────────────────────────
+  socket.on('super_admin_delete_b', async ({ username }, cb) => {
+    if (typeof cb !== 'function') return
+    if (!pool) {
+      cb({ ok: false, error: '数据库未连接' })
+      return
+    }
+    if (!username) {
+      cb({ ok: false, error: '参数不完整' })
+      return
+    }
+    try {
+      // bets cascade delete via rooms FK
+      await pool.query('DELETE FROM rooms WHERE b_username=$1', [username])
+      await pool.query('DELETE FROM b_accounts WHERE username=$1', [username])
+      cb({ ok: true })
+    } catch (e) {
+      console.error('[db] super_admin_delete_b error', e.message)
+      cb({ ok: false, error: '删除失败' })
+    }
+  })
+
+  // ── Disconnect ────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
@@ -653,14 +937,21 @@ function dismissRoom(room) {
   }
 }
 
-httpServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server listening on ${PORT}`)
-})
-if (httpServerAdmin && SUPER_ADMIN_PORT) {
-  httpServerAdmin.listen(SUPER_ADMIN_PORT, '0.0.0.0', () => {
-    console.log(`Super admin UI on ${SUPER_ADMIN_PORT} (Socket.IO → ${PORT})`)
+// ─── Start servers ────────────────────────────────────────────────────────────
+function startServers() {
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on ${PORT}`)
   })
-  httpServerAdmin.on('error', (err) => {
-    console.error('[room-game] Super admin port listen failed:', err.message)
-  })
+  if (httpServerAdmin && SUPER_ADMIN_PORT) {
+    httpServerAdmin.listen(SUPER_ADMIN_PORT, '0.0.0.0', () => {
+      console.log(`Super admin UI on ${SUPER_ADMIN_PORT} (Socket.IO → ${PORT})`)
+    })
+    httpServerAdmin.on('error', (err) => {
+      console.error('[room-game] Super admin port listen failed:', err.message)
+    })
+  }
 }
+
+initDb()
+  .catch((e) => console.error('[db] initDb failed:', e.message))
+  .finally(() => startServers())

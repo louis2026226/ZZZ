@@ -1,6 +1,6 @@
 {
   "name": "room-game-server",
-  "version": "1.0.106",
+  "version": "1.0.107",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "pg": "^8.13.0",
     "socket.io": "^4.8.1"
   }
 }
