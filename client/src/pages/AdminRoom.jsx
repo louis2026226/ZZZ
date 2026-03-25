@@ -37,7 +37,8 @@ function emptyNumPick() {
 
 function buildDigitsFromPick(pick) {
   const out = []
-  for (const d of [1, 2, 3, 4]) {
+  const sorted = [1, 2, 3, 4].sort((a, b) => (pick[b] ?? 0) - (pick[a] ?? 0) || a - b)
+  for (const d of sorted) {
     const c = pick[d] ?? 0
     for (let i = 0; i < c; i++) out.push(d)
   }
@@ -982,7 +983,7 @@ export default function AdminRoom() {
             <span className={`ml-3 text-lg font-bold ${roomTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {roomTotalPnL >= 0 ? '+' : ''}{roomTotalPnL}
             </span>
-            <div className="mt-1 text-xs text-zinc-500">V1.0.105</div>
+            <div className="mt-1 text-xs text-zinc-500">V1.0.106</div>
           </div>
         ) : null}
 

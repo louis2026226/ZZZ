@@ -37,7 +37,8 @@ function emptyNumPick() {
 
 function buildDigitsFromPick(pick) {
   const out = []
-  for (const d of [1, 2, 3, 4]) {
+  const sorted = [1, 2, 3, 4].sort((a, b) => (pick[b] ?? 0) - (pick[a] ?? 0) || a - b)
+  for (const d of sorted) {
     const c = pick[d] ?? 0
     for (let i = 0; i < c; i++) out.push(d)
   }
