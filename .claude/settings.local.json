@@ -47,7 +47,8 @@
       "Bash(sed -i 's/V1.0.85/V1.0.86/' client/src/pages/BLogin.jsx client/src/pages/CLogin.jsx)",
       "Bash(SSH_ASKPASS=/tmp/ssh_pass_helper.sh DISPLAY=:0 SSH_ASKPASS_REQUIRE=force ssh -o StrictHostKeyChecking=no root@8.134.168.87 \"cd /root/louis-zz && git reset --hard HEAD && git pull origin main && pm2 restart room-game\")",
       "Bash(/c/Users/Administrator/AppData/Local/Microsoft/WinGet/Links/sshpass.exe --version)",
-      "Bash(docker pull:*)"
+      "Bash(docker pull:*)",
+      "Bash(expect:*)"
     ]
   }
 }

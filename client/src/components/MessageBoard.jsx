@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 function displayMessage(text) {
   if (!text) return text
@@ -43,10 +43,9 @@ function lineClass(text) {
   return 'text-zinc-100'
 }
 
-export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
+export default function MessageBoard({ messages, className = 'h-[40vh]', showRedPacket = false }) {
   const bottomRef = useRef(null)
   const scrollRef = useRef(null)
-  const [showRedPacket, setShowRedPacket] = useState(false)
 
   useEffect(() => {
     const el = scrollRef.current

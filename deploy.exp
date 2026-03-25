@@ -1,0 +1,13 @@
+#!/usr/bin/expect -f
+set timeout 30
+spawn ssh root@8.134.168.87 "cd /root/louis-zz && bash deploy.sh"
+expect {
+    "password:" {
+        send "AB124hdhfdjhh841@#%@3yg34\r"
+        exp_continue
+    }
+    eof {
+        exit
+    }
+}
+wait
