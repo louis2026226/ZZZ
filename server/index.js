@@ -57,7 +57,9 @@ async function initDb() {
       status        TEXT        NOT NULL DEFAULT 'active',
       authorized    BOOLEAN     NOT NULL DEFAULT true,
       created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+    )
+  `)
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id             SERIAL      PRIMARY KEY,
       room_code      TEXT        NOT NULL,
@@ -67,7 +69,9 @@ async function initDb() {
       total_pnl      INT         NOT NULL DEFAULT 0,
       settled_rounds INT         NOT NULL DEFAULT 0,
       created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+    )
+  `)
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS bets (
       id           SERIAL      PRIMARY KEY,
       room_id      INT         NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
@@ -77,7 +81,7 @@ async function initDb() {
       amount       INT         NOT NULL,
       delta        INT         NOT NULL,
       settled_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+    )
   `)
   console.log('[db] Tables ready')
 }
