@@ -631,8 +631,8 @@ io.on('connection', (socket) => {
       cb({ ok: false, error: '无权限' })
       return
     }
-    dismissRoom(room)
     cb({ ok: true })
+    dismissRoom(room)
   })
 
   socket.on('disconnect', () => {
@@ -665,7 +665,10 @@ function dismissRoom(room) {
   room.sockets = new Map()
   for (const sid of socketIds) {
     const s = io.sockets.sockets.get(sid)
-    if (s) s.disconnect(true)
+    if (s) {
+      s.data.roomId = null
+      s.leave(String(room.id))
+    }
   }
 }
 
