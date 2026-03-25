@@ -586,6 +586,7 @@ export default function AdminRoom() {
                       aria-hidden
                     />
                     <span className="text-lg font-bold text-amber-400">房号 {r.id}</span>
+                    {r.roomName ? <span className="mt-0.5 text-xs text-sky-400">{r.roomName}</span> : null}
                     <span className="mt-2 text-xs text-zinc-400">
                       {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
                     </span>

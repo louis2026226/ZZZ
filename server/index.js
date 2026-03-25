@@ -437,6 +437,7 @@ io.on('connection', (socket) => {
       if (room.adminUsername === username) {
         out.push({
           id: room.id,
+          roomName: room.roomName || '',
           totalRounds: room.totalRounds,
           maxBet: room.maxBet,
           betSeconds: room.betSeconds,
