@@ -527,7 +527,7 @@ io.on('connection', (socket) => {
     room.roomName = rn
     room.currentRound = 0
     room.gameEnded = false
-    addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
+    addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，上限 ${mb}。`)
     socket.join(roomKey(room.id))
     room.sockets.set(socket.id, { role: 'B', username })
     socket.data.roomId = room.id
