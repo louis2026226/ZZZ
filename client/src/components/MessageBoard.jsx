@@ -43,7 +43,7 @@ function lineClass(text) {
   return 'text-zinc-100'
 }
 
-export default function MessageBoard({ messages, className = 'h-[40vh]', showRedPacket = false }) {
+export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
   const bottomRef = useRef(null)
   const scrollRef = useRef(null)
 
@@ -78,11 +78,6 @@ export default function MessageBoard({ messages, className = 'h-[40vh]', showRed
             )
           )}
         </ul>
-        {showRedPacket && (
-          <div className="absolute bottom-2 right-2">
-            <img src="/hb1.png" alt="Red Packet" className="max-w-[180px] max-h-[180px]" />
-          </div>
-        )}
         <div ref={bottomRef} />
       </div>
     </div>

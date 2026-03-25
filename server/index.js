@@ -756,6 +756,15 @@ io.on('connection', (socket) => {
     broadcastRoom(room, 'bellRing', {})
   })
 
+  // ── Send red packet ───────────────────────────────────────────────────────
+  socket.on('send_redpacket', () => {
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room) return
+    addMessageImage(room, 'hb1.png')
+    broadcastRoom(room, 'messages', { list: room.messages })
+  })
+
   // ── Dismiss room ──────────────────────────────────────────────────────────
   socket.on('b_dismiss_room', (cb) => {
     if (typeof cb !== 'function') return

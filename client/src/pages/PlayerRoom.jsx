@@ -137,7 +137,6 @@ export default function PlayerRoom() {
   const [copiedTip, setCopiedTip] = useState('')
   const confirmLockRef = useRef(false)
   const [roundUsedDigits, setRoundUsedDigits] = useState([])
-  const [showRedPacket, setShowRedPacket] = useState(false)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -245,16 +244,6 @@ export default function PlayerRoom() {
 
   const betting = phase === 'betting'
   const showTimer = phase === 'betting' && timerLeft > 0
-
-  useEffect(() => {
-    let redPacketTimer
-    if (showRedPacket) {
-      redPacketTimer = setTimeout(() => setShowRedPacket(false), 5000)
-    }
-    return () => {
-      if (redPacketTimer) clearTimeout(redPacketTimer)
-    }
-  }, [showRedPacket])
 
   function toggleNum(n) {
     if (!betting) return
@@ -393,10 +382,10 @@ export default function PlayerRoom() {
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
       <div className="mb-4 shrink-0 relative">
-        <MessageBoard messages={messages} className={boardClass} showRedPacket={showRedPacket} />
+        <MessageBoard messages={messages} className={boardClass} />
         <button
           type="button"
-          onClick={() => setShowRedPacket(true)}
+          onClick={() => { sound('button'); socketRef.current?.emit('send_redpacket') }}
           className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
           title="发红包"
         >
