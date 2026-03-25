@@ -65,6 +65,7 @@ function makeRoom(adminUsername) {
     playerBets: new Map(),
     messages: [],
     emptyPlayerTimeout: null,
+    roomTotalPnL: 0,
   }
   rooms.set(id, room)
   return room
@@ -142,6 +143,7 @@ function roomStatsPayload(room) {
     gameEnded: room.gameEnded,
     adminUsername: room.adminUsername,
     roomName: room.roomName || '',
+    roomTotalPnL: room.roomTotalPnL ?? 0,
   }
 }
 
@@ -256,6 +258,7 @@ function settleRound(room, drawNumber) {
       const numDisplay = distinctNums.length === 1 ? String(distinctNums[0]) : bet.numbers.join('')
       addMessage(room, `【结算】${bet.username} ${label}${absAmt}（${numDisplay}+${bet.amount}）`)
       playerNetDelta.set(bet.username, (playerNetDelta.get(bet.username) || 0) + delta)
+      room.roomTotalPnL = (room.roomTotalPnL || 0) + delta
       const prevPnl = st.cPnL.get(bet.username) || 0
       st.cPnL.set(bet.username, prevPnl + delta)
       if (bet.username === owner) st.selfPnL += delta

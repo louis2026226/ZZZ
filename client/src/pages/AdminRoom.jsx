@@ -162,6 +162,7 @@ export default function AdminRoom() {
   const [maxBetState, setMaxBetState] = useState(0)
   const [phase, setPhase] = useState('idle')
   const [gameEnded, setGameEnded] = useState(false)
+  const [roomTotalPnL, setRoomTotalPnL] = useState(0)
   const [timerLeft, setTimerLeft] = useState(0)
   const [timerTotal, setTimerTotal] = useState(30)
   const [settleOpen, setSettleOpen] = useState(false)
@@ -268,6 +269,7 @@ export default function AdminRoom() {
         if (st.phase) setPhase(st.phase)
         if (st.gameEnded) setGameEnded(true)
         if (st.roomName != null) setRoomName(st.roomName)
+        if (st.roomTotalPnL != null) setRoomTotalPnL(st.roomTotalPnL)
       })
       s.on('timer', ({ left, total }) => {
         setTimerLeft(left)
@@ -982,6 +984,15 @@ export default function AdminRoom() {
             </button>
           ) : null}
         </div>
+
+        {isHost ? (
+          <div className="rounded-lg bg-zinc-800 px-4 py-3 text-center">
+            <span className="text-sm text-zinc-400">总成绩</span>
+            <span className={`ml-3 text-lg font-bold ${roomTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {roomTotalPnL >= 0 ? '+' : ''}{roomTotalPnL}
+            </span>
+          </div>
+        ) : null}
 
         <p className="text-xs text-zinc-500">
           {gameEnded ? '游戏已结束' : ''}
