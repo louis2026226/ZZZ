@@ -4,6 +4,7 @@ import { createSocket } from '../socket.js'
 import LogoutButton from '../components/LogoutButton.jsx'
 import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
+import RedPacketPopup from '../components/RedPacketPopup.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 import { playSound as sound } from '../utils/sound.js'
@@ -137,6 +138,7 @@ export default function PlayerRoom() {
   const [copiedTip, setCopiedTip] = useState('')
   const confirmLockRef = useRef(false)
   const [roundUsedDigits, setRoundUsedDigits] = useState([])
+  const [rpPopup, setRpPopup] = useState(null)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -225,6 +227,9 @@ export default function PlayerRoom() {
     })
     s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
     s.on('bellRing', () => sound('pass'))
+    s.on('redpacket_update', (payload) => {
+      setRpPopup(prev => prev && prev.id === payload.id ? { id: payload.id, rp: payload } : prev)
+    })
     s.on('roomDismissed', ({ roomId }) => {
       const rid = sessionStorage.getItem('cRoomId')
       if (!rid || String(roomId) !== String(rid)) return
@@ -244,6 +249,18 @@ export default function PlayerRoom() {
 
   const betting = phase === 'betting'
   const showTimer = phase === 'betting' && timerLeft > 0
+
+  function onRedPacketClick(id) {
+    socketRef.current?.emit('get_redpacket', { id }, (rp) => {
+      if (rp) setRpPopup({ id, rp })
+    })
+  }
+
+  function onGrabRedPacket(id) {
+    socketRef.current?.emit('grab_redpacket', { id }, (res) => {
+      if (res?.rp) setRpPopup({ id, rp: res.rp })
+    })
+  }
 
   function toggleNum(n) {
     if (!betting) return
@@ -382,7 +399,7 @@ export default function PlayerRoom() {
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
       <div className="mb-4 shrink-0 relative">
-        <MessageBoard messages={messages} className={boardClass} />
+        <MessageBoard messages={messages} className={boardClass} onRedPacketClick={onRedPacketClick} />
         <button
           type="button"
           onClick={() => { sound('button'); socketRef.current?.emit('send_redpacket') }}
@@ -586,6 +603,14 @@ export default function PlayerRoom() {
             </button>
           </div>
         </div>
+      ) : null}
+      {rpPopup ? (
+        <RedPacketPopup
+          rp={rpPopup.rp}
+          myUsername={username}
+          onGrab={onGrabRedPacket}
+          onClose={() => setRpPopup(null)}
+        />
       ) : null}
     </div>
   )

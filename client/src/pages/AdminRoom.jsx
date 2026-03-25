@@ -4,6 +4,7 @@ import { createSocket } from '../socket.js'
 import LogoutButton from '../components/LogoutButton.jsx'
 import RoomCornerInfo from '../components/RoomCornerInfo.jsx'
 import MessageBoard from '../components/MessageBoard.jsx'
+import RedPacketPopup from '../components/RedPacketPopup.jsx'
 import TimerBar from '../components/TimerBar.jsx'
 import NextRoundCountdown from '../components/NextRoundCountdown.jsx'
 import { playSound as sound } from '../utils/sound.js'
@@ -180,6 +181,7 @@ export default function AdminRoom() {
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
   const [copiedTip, setCopiedTip] = useState('')
   const [roundUsedDigits, setRoundUsedDigits] = useState([])
+  const [rpPopup, setRpPopup] = useState(null) // { id, rp }
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
@@ -310,6 +312,9 @@ export default function AdminRoom() {
       })
       s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
       s.on('bellRing', () => sound('pass'))
+      s.on('redpacket_update', (payload) => {
+        setRpPopup(prev => prev && prev.id === payload.id ? { id: payload.id, rp: payload } : prev)
+      })
       s.on('roomDismissed', () => {
         sessionStorage.removeItem('bRoomId')
         setInRoomId('')
@@ -398,6 +403,18 @@ export default function AdminRoom() {
     setErr('')
     socketRef.current?.emit('b_settle', { drawNumber: n })
     setSettleOpen(false)
+  }
+
+  function onRedPacketClick(id) {
+    socketRef.current?.emit('get_redpacket', { id }, (rp) => {
+      if (rp) setRpPopup({ id, rp })
+    })
+  }
+
+  function onGrabRedPacket(id) {
+    socketRef.current?.emit('grab_redpacket', { id }, (res) => {
+      if (res?.rp) setRpPopup({ id, rp: res.rp })
+    })
   }
 
   function onDismiss() {
@@ -810,7 +827,7 @@ export default function AdminRoom() {
         onDismiss={isHost ? () => { sound('button'); onDismiss() } : undefined}
       />
       <div className="relative mb-4 shrink-0">
-        <MessageBoard messages={messages} className={boardClass} />
+        <MessageBoard messages={messages} className={boardClass} onRedPacketClick={onRedPacketClick} />
         {isHost ? (
           <button
             type="button"
@@ -1079,6 +1096,14 @@ export default function AdminRoom() {
             </button>
           </div>
         </div>
+      ) : null}
+      {rpPopup ? (
+        <RedPacketPopup
+          rp={rpPopup.rp}
+          myUsername={bUsername}
+          onGrab={onGrabRedPacket}
+          onClose={() => setRpPopup(null)}
+        />
       ) : null}
     </div>
   )

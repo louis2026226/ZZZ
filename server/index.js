@@ -141,6 +141,7 @@ function makeRoom(adminUsername) {
     sockets: new Map(),
     playerBets: new Map(),
     messages: [],
+    redPackets: new Map(),
     emptyPlayerTimeout: null,
     roomTotalPnL: 0,
     dbRoomId: null,
@@ -158,14 +159,26 @@ function addMessage(room, text) {
   if (room.messages.length > 200) room.messages.shift()
 }
 
-function addMessageImage(room, image) {
-  room.messages.push({ t: Date.now(), image })
-  if (room.messages.length > 200) room.messages.shift()
-}
-
 function addMessageDivider(room) {
   room.messages.push({ t: Date.now(), divider: true })
   if (room.messages.length > 200) room.messages.shift()
+}
+
+function randomHongbaoFen(remainFen, remainPeople) {
+  if (remainPeople === 1) return remainFen
+  const maxFen = Math.min(Math.floor(remainFen / remainPeople * 2), remainFen - (remainPeople - 1))
+  return Math.floor(Math.random() * maxFen) + 1
+}
+
+function redPacketPayload(rp) {
+  return {
+    id: rp.id,
+    sender: rp.sender,
+    totalFen: rp.totalFen,
+    maxGrabbers: rp.maxGrabbers,
+    grabbers: rp.grabbers.map(g => ({ username: g.username, amount: g.amount, time: g.time })),
+    finished: rp.finished,
+  }
 }
 
 function broadcastRoom(room, event, payload) {
@@ -761,8 +774,48 @@ io.on('connection', (socket) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room) return
-    addMessageImage(room, 'hb1.png')
+    const info = room.sockets.get(socket.id)
+    const sender = info?.username
+    if (!sender) return
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+    const rp = { id, sender, totalFen: 100, remainFen: 100, maxGrabbers: 3, grabbers: [], finished: false }
+    room.redPackets.set(id, rp)
+    room.messages.push({ t: Date.now(), redpacket: { id, sender } })
+    if (room.messages.length > 200) room.messages.shift()
     broadcastRoom(room, 'messages', { list: room.messages })
+  })
+
+  // ── Grab red packet ────────────────────────────────────────────────────────
+  socket.on('grab_redpacket', ({ id }, cb) => {
+    if (typeof cb !== 'function') cb = () => {}
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room) return cb({ ok: false, error: '房间不存在' })
+    const rp = room.redPackets.get(id)
+    if (!rp) return cb({ ok: false, error: '红包不存在' })
+    if (rp.finished) return cb({ ok: false, error: '红包已抢完' })
+    const info = room.sockets.get(socket.id)
+    const username = info?.username
+    if (!username) return cb({ ok: false, error: '未登录' })
+    if (rp.grabbers.find(g => g.username === username)) return cb({ ok: false, error: '已经抢过了' })
+    const remainPeople = rp.maxGrabbers - rp.grabbers.length
+    const amount = randomHongbaoFen(rp.remainFen, remainPeople)
+    rp.remainFen -= amount
+    rp.grabbers.push({ username, amount, time: Date.now() })
+    if (rp.grabbers.length >= rp.maxGrabbers || rp.remainFen <= 0) rp.finished = true
+    const payload = redPacketPayload(rp)
+    broadcastRoom(room, 'redpacket_update', payload)
+    cb({ ok: true, rp: payload })
+  })
+
+  // ── Get red packet ─────────────────────────────────────────────────────────
+  socket.on('get_redpacket', ({ id }, cb) => {
+    if (typeof cb !== 'function') return
+    const roomId = socket.data.roomId
+    const room = roomId ? getRoom(roomId) : null
+    if (!room) return cb(null)
+    const rp = room.redPackets.get(id)
+    cb(rp ? redPacketPayload(rp) : null)
   })
 
   // ── Dismiss room ──────────────────────────────────────────────────────────
