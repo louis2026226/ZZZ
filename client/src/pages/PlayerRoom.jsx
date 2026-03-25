@@ -130,6 +130,7 @@ export default function PlayerRoom() {
   const [playerCount, setPlayerCount] = useState(0)
   const [currentRound, setCurrentRound] = useState(0)
   const [totalRoundsState, setTotalRoundsState] = useState(0)
+  const [roomName, setRoomName] = useState('')
   const [statsOpen, setStatsOpen] = useState(false)
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
   const [copiedTip, setCopiedTip] = useState('')
@@ -180,6 +181,7 @@ export default function PlayerRoom() {
       if (res.room.totalRounds != null) setTotalRoundsState(res.room.totalRounds)
       if (res.room.phase) setPhase(res.room.phase)
       if (res.room.gameEnded) setGameEnded(true)
+      if (res.room.roomName != null) setRoomName(res.room.roomName)
     })
 
     s.on('messages', ({ list }) => setMessages(list || []))
@@ -187,6 +189,7 @@ export default function PlayerRoom() {
       if (st?.playerCount != null) setPlayerCount(st.playerCount)
       if (st?.currentRound != null) setCurrentRound(st.currentRound)
       if (st?.totalRounds != null) setTotalRoundsState(st.totalRounds)
+      if (st?.roomName != null) setRoomName(st.roomName)
     })
     s.on('gameStart', () => {
       setNextRoundLeft(0)
@@ -370,6 +373,7 @@ export default function PlayerRoom() {
         playerCount={playerCount}
         currentRound={currentRound}
         totalRounds={totalRoundsState}
+        roomName={roomName}
       />
 
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}

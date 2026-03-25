@@ -141,6 +141,7 @@ function roomStatsPayload(room) {
     phase: room.phase,
     gameEnded: room.gameEnded,
     adminUsername: room.adminUsername,
+    roomName: room.roomName || '',
   }
 }
 
@@ -380,16 +381,18 @@ io.on('connection', (socket) => {
         messages: room.messages,
         phase: room.phase,
         gameEnded: room.gameEnded,
+        roomName: room.roomName || '',
       },
     })
   })
 
-  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds, baolu }, cb) => {
+  socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds, baolu, roomName }, cb) => {
     if (typeof cb !== 'function') return
     const tr = Number(totalRounds || 10)
     const mb = Number(maxBet || 200)
     const bs = betSeconds != null ? Number(betSeconds) : 30
     const bl = /^\d{3}$/.test(String(baolu || '')) ? String(baolu) : ''
+    const rn = String(roomName || '').slice(0, 12)
     if (!username || !tr || !mb) {
       cb({ ok: false, error: '参数不完整' })
       return
@@ -399,6 +402,7 @@ io.on('connection', (socket) => {
     room.maxBet = mb
     room.betSeconds = bs
     room.baolu = bl
+    room.roomName = rn
     room.currentRound = 0
     room.gameEnded = false
     addMessage(room, `【系统】管理员 ${username} 创建房间 ${room.id}，总局数 ${tr}，单注上限 ${mb}。`)
@@ -417,6 +421,7 @@ io.on('connection', (socket) => {
         betSeconds: room.betSeconds,
         currentRound: room.currentRound,
         messages: room.messages,
+        roomName: room.roomName || '',
       },
     })
   })
@@ -479,6 +484,7 @@ io.on('connection', (socket) => {
         messages: room.messages,
         phase: room.phase,
         gameEnded: room.gameEnded,
+        roomName: room.roomName || '',
       },
     })
   })

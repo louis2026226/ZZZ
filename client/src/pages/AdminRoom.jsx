@@ -152,6 +152,8 @@ export default function AdminRoom() {
   const [betSeconds, setBetSeconds] = useState(30)
   const [timerEnabled, setTimerEnabled] = useState(false)
   const [baoluInput, setBaoluInput] = useState('')
+  const [roomNameInput, setRoomNameInput] = useState('')
+  const [roomName, setRoomName] = useState('')
   const [roomId, setRoomId] = useState(() => sessionStorage.getItem('bRoomId') || '')
   const [messages, setMessages] = useState([])
   const [playerCount, setPlayerCount] = useState(0)
@@ -243,6 +245,7 @@ export default function AdminRoom() {
       if (r.adminUsername) setHostUsername(r.adminUsername)
       if (r.phase) setPhase(r.phase)
       setGameEnded(Boolean(r.gameEnded))
+      if (r.roomName != null) setRoomName(r.roomName)
     }
 
     if (rid) {
@@ -264,6 +267,7 @@ export default function AdminRoom() {
         if (st.adminUsername) setHostUsername(st.adminUsername)
         if (st.phase) setPhase(st.phase)
         if (st.gameEnded) setGameEnded(true)
+        if (st.roomName != null) setRoomName(st.roomName)
       })
       s.on('timer', ({ left, total }) => {
         setTimerLeft(left)
@@ -358,6 +362,7 @@ export default function AdminRoom() {
         maxBet: Number(maxBet),
         betSeconds: Number(timerEnabled ? betSeconds : 0),
         baolu: baoluInput.trim(),
+        roomName: roomNameInput.trim().slice(0, 12),
       },
       (res) => {
         if (!res?.ok) {
@@ -380,6 +385,7 @@ export default function AdminRoom() {
   function backToLobby() {
     sessionStorage.removeItem('bRoomId')
     setInRoomId('')
+    setRoomName('')
   }
 
   function onStart() {
@@ -623,7 +629,16 @@ export default function AdminRoom() {
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md space-y-4 rounded-xl border border-zinc-700 bg-zinc-900 p-6"
             >
-              <h2 className="text-lg font-semibold">创建房间</h2>
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                创建房间
+                <input
+                  type="text"
+                  value={roomNameInput}
+                  onChange={(e) => setRoomNameInput(e.target.value.slice(0, 12))}
+                  placeholder="输入房间名"
+                  className="flex-1 rounded-md border border-zinc-600 bg-zinc-800 px-2 py-1 text-sm font-normal text-white placeholder-zinc-500 focus:border-sky-500 focus:outline-none"
+                />
+              </h2>
               <div>
                 <label className="block text-sm text-zinc-400">总局数</label>
                 <div className="mt-2 flex gap-2">
@@ -789,6 +804,7 @@ export default function AdminRoom() {
         playerCount={playerCount}
         currentRound={currentRound}
         totalRounds={totalRoundsState}
+        roomName={roomName}
       />
 
       <div className="relative mb-4 shrink-0">
