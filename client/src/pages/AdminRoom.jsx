@@ -180,6 +180,7 @@ export default function AdminRoom() {
   const [nextRoundLeft, setNextRoundLeft] = useState(0)
   const [copiedTip, setCopiedTip] = useState('')
   const [roundUsedDigits, setRoundUsedDigits] = useState([])
+  const [showRedPacket, setShowRedPacket] = useState(false)
 
   const bUsername = sessionStorage.getItem('bUser') || ''
   const isHost = Boolean(bUsername && hostUsername && bUsername === hostUsername)
@@ -199,6 +200,16 @@ export default function AdminRoom() {
   useEffect(() => {
     hostUsernameRef.current = hostUsername
   }, [hostUsername])
+
+  useEffect(() => {
+    let redPacketTimer
+    if (showRedPacket) {
+      redPacketTimer = setTimeout(() => setShowRedPacket(false), 5000)
+    }
+    return () => {
+      if (redPacketTimer) clearTimeout(redPacketTimer)
+    }
+  }, [showRedPacket])
 
   useEffect(() => {
     if (!inRoomId || !isHost || gameEnded || phase !== 'closed') return
@@ -223,6 +234,7 @@ export default function AdminRoom() {
       setHostUsername('')
       setNextRoundLeft(0)
       setBetAlert('')
+      setShowRedPacket(false)
     }
   }, [inRoomId])
 
@@ -810,15 +822,25 @@ export default function AdminRoom() {
         onDismiss={isHost ? () => { sound('button'); onDismiss() } : undefined}
       />
       <div className="relative mb-4 shrink-0">
-        <MessageBoard messages={messages} className={boardClass} />
+        <MessageBoard messages={messages} className={boardClass} setShowRedPacket={setShowRedPacket} />
         {isHost && phase === 'betting' ? (
           <button
             type="button"
             onClick={() => { sound('button'); socketRef.current?.emit('b_ring_bell') }}
-            className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
+            className="absolute bottom-2 right-16 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
             title="还有人答题吗？"
           >
             🔔
+          </button>
+        ) : null}
+        {isHost ? (
+          <button
+            type="button"
+            onClick={() => setShowRedPacket(true)}
+            className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
+            title="发红包"
+          >
+            <img src="/hb2.png" alt="红包" className="h-6 w-6" />
           </button>
         ) : null}
       </div>

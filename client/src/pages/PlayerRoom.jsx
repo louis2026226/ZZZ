@@ -137,6 +137,7 @@ export default function PlayerRoom() {
   const [copiedTip, setCopiedTip] = useState('')
   const confirmLockRef = useRef(false)
   const [roundUsedDigits, setRoundUsedDigits] = useState([])
+  const [showRedPacket, setShowRedPacket] = useState(false)
 
   const username = sessionStorage.getItem('cUser') || ''
 
@@ -244,6 +245,16 @@ export default function PlayerRoom() {
 
   const betting = phase === 'betting'
   const showTimer = phase === 'betting' && timerLeft > 0
+
+  useEffect(() => {
+    let redPacketTimer
+    if (showRedPacket) {
+      redPacketTimer = setTimeout(() => setShowRedPacket(false), 5000)
+    }
+    return () => {
+      if (redPacketTimer) clearTimeout(redPacketTimer)
+    }
+  }, [showRedPacket])
 
   function toggleNum(n) {
     if (!betting) return
@@ -381,8 +392,16 @@ export default function PlayerRoom() {
 
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
-      <div className="mb-4 shrink-0">
-        <MessageBoard messages={messages} className={boardClass} />
+      <div className="mb-4 shrink-0 relative">
+        <MessageBoard messages={messages} className={boardClass} setShowRedPacket={setShowRedPacket} />
+        <button
+          type="button"
+          onClick={() => setShowRedPacket(true)}
+          className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800/90 text-lg shadow hover:bg-zinc-700"
+          title="发红包"
+        >
+          <img src="/hb2.png" alt="红包" className="h-6 w-6" />
+        </button>
       </div>
 
       <div className="flex flex-1 flex-col gap-6">

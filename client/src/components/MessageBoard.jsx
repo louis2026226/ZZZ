@@ -46,6 +46,7 @@ function lineClass(text) {
 export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
   const bottomRef = useRef(null)
   const scrollRef = useRef(null)
+  const [showRedPacket, setShowRedPacket] = useState(false)
 
   useEffect(() => {
     const el = scrollRef.current
@@ -60,24 +61,31 @@ export default function MessageBoard({ messages, className = 'h-[40vh]' }) {
       ref={scrollRef}
       className={`w-full overflow-y-auto rounded-lg border border-zinc-600 bg-zinc-900/80 p-3 text-sm text-zinc-100 ${className}`}
     >
-      <ul className="space-y-1">
-        {(messages || []).map((m, i) =>
-          m.divider ? (
-            <li key={`d-${m.t}-${i}`} className="list-none py-1">
-              <hr className="border-zinc-600" />
-            </li>
-          ) : m.image ? (
-            <li key={`${m.t}-${i}`} className="list-none">
-              <img src={`/${m.image}`} alt="" className="max-w-[120px] max-h-[120px]" />
-            </li>
-          ) : m.text?.includes('离开房间') ? null : (
-            <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
-              {renderText(m.text)}
-            </li>
-          )
+      <div className="relative">
+        <ul className="space-y-1">
+          {(messages || []).map((m, i) =>
+            m.divider ? (
+              <li key={`d-${m.t}-${i}`} className="list-none py-1">
+                <hr className="border-zinc-600" />
+              </li>
+            ) : m.image ? (
+              <li key={`${m.t}-${i}`} className="list-none">
+                <img src={`/${m.image}`} alt="" className="max-w-[120px] max-h-[120px]" />
+              </li>
+            ) : m.text?.includes('离开房间') ? null : (
+              <li key={`${m.t}-${i}`} className={`break-words ${lineClass(m.text)}`}>
+                {renderText(m.text)}
+              </li>
+            )
+          )}
+        </ul>
+        {showRedPacket && (
+          <div className="absolute bottom-2 right-2">
+            <img src="/hb1.png" alt="Red Packet" className="max-w-[180px] max-h-[180px]" />
+          </div>
         )}
-      </ul>
-      <div ref={bottomRef} />
+        <div ref={bottomRef} />
+      </div>
     </div>
   )
 }
