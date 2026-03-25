@@ -159,6 +159,11 @@ function addMessage(room, text) {
   if (room.messages.length > 200) room.messages.shift()
 }
 
+function addMessageImage(room, image) {
+  room.messages.push({ t: Date.now(), image })
+  if (room.messages.length > 200) room.messages.shift()
+}
+
 function addMessageDivider(room) {
   room.messages.push({ t: Date.now(), divider: true })
   if (room.messages.length > 200) room.messages.shift()
