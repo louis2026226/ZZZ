@@ -307,9 +307,7 @@ export default function AdminRoom() {
       })
       s.on('nextRoundCountdown', ({ left }) => setNextRoundLeft(Number(left) || 0))
       s.on('bellRing', () => sound('pass'))
-      s.on('roomDismissed', ({ roomId }) => {
-        const sr = sessionStorage.getItem('bRoomId')
-        if (!sr || String(roomId) !== String(sr)) return
+      s.on('roomDismissed', () => {
         sessionStorage.removeItem('bRoomId')
         setInRoomId('')
         setSettleOpen(false)
@@ -403,13 +401,12 @@ export default function AdminRoom() {
     setErr('')
     const s = socketRef.current
     if (!s) return
+    backToLobby()
+    setDismissTip('房间已解散')
     s.emit('b_dismiss_room', (res) => {
       if (!res?.ok) {
-        setErr(res?.error || '解散失败')
-        return
+        // 解散失败不做任何操作，已经返回大厅
       }
-      setDismissTip('房间已解散')
-      backToLobby()
     })
   }
 
