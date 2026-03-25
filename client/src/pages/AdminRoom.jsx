@@ -769,8 +769,9 @@ export default function AdminRoom() {
     )
   }
 
-  const boardClass =
-    'min-h-[180px] h-[50dvh] max-h-[50dvh] sm:min-h-[200px]'
+  const boardClass = isHost
+    ? 'min-h-[330px] h-[calc(50dvh+150px)] max-h-[calc(50dvh+150px)] sm:min-h-[350px]'
+    : 'min-h-[180px] h-[50dvh] max-h-[50dvh] sm:min-h-[200px]'
   const canStart =
     isHost && !gameEnded && phase !== 'betting' && phase !== 'closed' && phase !== 'countdown'
   const latestRound = roundRecords.length > 0 ? roundRecords[roundRecords.length - 1].round : 0
@@ -793,10 +794,19 @@ export default function AdminRoom() {
     <div className="flex min-h-screen min-h-[100dvh] w-full max-w-lg flex-col bg-zinc-950 px-3 pb-6 pt-14 text-white sm:mx-auto sm:px-4">
       <NextRoundCountdown value={nextRoundLeft} />
       <LogoutButton
-        onDismiss={isHost ? onDismiss : undefined}
+        onDismiss={undefined}
         onStatsClick={() => setStatsOpen(true)}
         onBack={backToLobby}
       />
+      {isHost ? (
+        <button
+          type="button"
+          onClick={() => { sound('button'); onDismiss() }}
+          className="fixed bottom-6 left-3 z-50 rounded-lg bg-red-800 px-4 py-2.5 text-sm text-white shadow hover:bg-red-700"
+        >
+          解散房间
+        </button>
+      ) : null}
       <RoomCornerInfo
         roomId={roomId}
         playerCount={playerCount}
