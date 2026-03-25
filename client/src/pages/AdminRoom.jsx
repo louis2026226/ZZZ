@@ -309,7 +309,7 @@ export default function AdminRoom() {
         sessionStorage.removeItem('bRoomId')
         setInRoomId('')
         setSettleOpen(false)
-        setErr('房间已关闭')
+        setDismissTip('房间已解散')
       })
     } else {
       setListErr('')

@@ -653,11 +653,13 @@ function dismissRoom(room) {
   clearRoomTimers(room)
   addMessage(room, `【系统】房间 ${room.id} 已解散。`)
   broadcastRoom(room, 'messages', { list: room.messages })
+  broadcastRoom(room, 'roomDismissed', { roomId: room.id })
   rooms.delete(String(room.id))
-  const sockets = room.sockets
+  const socketIds = Array.from(room.sockets.keys())
   room.sockets = new Map()
-  for (const socket of sockets.keys()) {
-    socket.disconnect()
+  for (const sid of socketIds) {
+    const s = io.sockets.sockets.get(sid)
+    if (s) s.disconnect(true)
   }
 }
 
