@@ -393,7 +393,7 @@ export default function PlayerRoom() {
       {joinErr ? <p className="mb-2 text-center text-sm text-red-400">{joinErr}</p> : null}
 
       <div className="mb-4 shrink-0 relative">
-        <MessageBoard messages={messages} className={boardClass} setShowRedPacket={setShowRedPacket} />
+        <MessageBoard messages={messages} className={boardClass} showRedPacket={showRedPacket} />
         <button
           type="button"
           onClick={() => setShowRedPacket(true)}

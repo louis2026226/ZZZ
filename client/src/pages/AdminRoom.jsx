@@ -822,7 +822,7 @@ export default function AdminRoom() {
         onDismiss={isHost ? () => { sound('button'); onDismiss() } : undefined}
       />
       <div className="relative mb-4 shrink-0">
-        <MessageBoard messages={messages} className={boardClass} setShowRedPacket={setShowRedPacket} />
+        <MessageBoard messages={messages} className={boardClass} showRedPacket={showRedPacket} />
         {isHost && phase === 'betting' ? (
           <button
             type="button"
