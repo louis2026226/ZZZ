@@ -174,6 +174,19 @@ From `.cursor/rules/execute-first.mdc`:
 - **Multi-bet per round**: Players can place multiple bets per round, but limited to 2 distinct numbers total
 - **Build output**: Server serves `client/dist` statically; ensure build exists before production
 
+## 自动记忆维护 (Memory Maintenance)
+
+- **任务自检**：每次完成一个独立需求或修复 Bug 后，必须主动更新 `.claude/rules/` 下对应的模块文件。
+- **记录内容**：
+  1. 本次修改的核心逻辑
+  2. 新增的配置项或 Socket 事件
+  3. 任何需要持久记忆的特殊决策（例如：为什么这样设计）
+- **禁止口头总结**：不要仅在对话中告诉用户做了什么，必须写入文件。
+- **模块归属**：
+  - 游戏逻辑（下注、结算、房间状态）→ `.claude/rules/logic.md`
+  - UI / 角色权限（B端/C端显示差异）→ `.claude/rules/ui.md`
+  - 部署 / 版本 / 环境变量 → `.claude/rules/deploy.md`
+
 ## Claude Code Project Rules
 
 ### Critical Workflow (Test-Driven)
