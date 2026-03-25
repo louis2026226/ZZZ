@@ -782,6 +782,7 @@ io.on('connection', (socket) => {
     const info = room.sockets.get(socket.id)
     const sender = info?.username
     if (!sender) return
+    if (!room.redPackets) room.redPackets = new Map()
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
     const rp = { id, sender, totalFen: 100, remainFen: 100, maxGrabbers: 3, grabbers: [], finished: false }
     room.redPackets.set(id, rp)
@@ -796,7 +797,7 @@ io.on('connection', (socket) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room) return cb({ ok: false, error: '房间不存在' })
-    const rp = room.redPackets.get(id)
+    const rp = room.redPackets?.get(id)
     if (!rp) return cb({ ok: false, error: '红包不存在' })
     if (rp.finished) return cb({ ok: false, error: '红包已抢完' })
     const info = room.sockets.get(socket.id)
@@ -819,7 +820,7 @@ io.on('connection', (socket) => {
     const roomId = socket.data.roomId
     const room = roomId ? getRoom(roomId) : null
     if (!room) return cb(null)
-    const rp = room.redPackets.get(id)
+    const rp = room.redPackets?.get(id)
     cb(rp ? redPacketPayload(rp) : null)
   })
 

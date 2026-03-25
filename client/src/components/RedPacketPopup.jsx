@@ -30,7 +30,7 @@ export default function RedPacketPopup({ rp, myUsername, onGrab, onClose }) {
 
         {/* Red envelope */}
         <div className="flex flex-col items-center bg-red-700 py-5">
-          <img src="/hb1.png" alt="红包" className="h-20 w-20" />
+          <img src="/hb1.png" alt="红包" className="max-h-20 w-auto" />
           <p className="mt-2 text-sm text-red-100">
             已抢 {grabbed}/{rp.maxGrabbers} 个，共 {total} 元
           </p>

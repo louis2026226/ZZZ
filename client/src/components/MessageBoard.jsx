@@ -74,7 +74,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]', onRedPa
                   onClick={() => onRedPacketClick?.(m.redpacket.id)}
                   className="flex items-center gap-2 rounded-lg bg-red-800/80 px-3 py-2 text-left hover:bg-red-700/80"
                 >
-                  <img src="/hb1.png" alt="红包" className="h-10 w-10 shrink-0" />
+                  <img src="/hb1.png" alt="红包" className="max-h-10 w-auto shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-white">{m.redpacket.sender} 发了一个红包</p>
                     <p className="text-xs text-red-200">点击领取</p>
