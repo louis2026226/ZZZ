@@ -8,7 +8,7 @@ if ! command -v pm2 >/dev/null 2>&1; then
 fi
 
 if [ -d "$ROOT/.git" ]; then
-  cd "$ROOT" && git pull
+  cd "$ROOT" && git fetch origin && git reset --hard origin/main
 fi
 
 cd "$ROOT/client"
