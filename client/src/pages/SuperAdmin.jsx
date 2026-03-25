@@ -163,6 +163,7 @@ export default function SuperAdmin() {
                 <th className="p-2">创建时间</th>
                 <th className="p-2">状态</th>
                 <th className="p-2">授权</th>
+                <th className="p-2">建房数</th>
                 <th className="p-2">已结算局数</th>
                 <th className="p-2">总盈亏</th>
                 <th className="p-2">去重 C 人数</th>
@@ -187,6 +188,7 @@ export default function SuperAdmin() {
                           : <span className="text-emerald-400">正常</span>}
                     </td>
                     <td className="p-2">{row.authorized ? '是' : <span className="text-red-400">否</span>}</td>
+                    <td className="p-2">{row.roomCount ?? 0}</td>
                     <td className="p-2">{row.totalRoundsSettled ?? 0}</td>
                     <td className="p-2">
                       <span className={(row.selfPnL ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}>

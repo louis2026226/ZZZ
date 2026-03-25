@@ -798,6 +798,7 @@ io.on('connection', (socket) => {
           a.status,
           a.authorized,
           a.created_at AS "createdAt",
+          COUNT(DISTINCT r.id)::int                AS "roomCount",
           COALESCE(SUM(r.settled_rounds), 0)::int AS "totalRoundsSettled",
           COALESCE(SUM(r.total_pnl), 0)::int      AS "selfPnL",
           COUNT(DISTINCT m.c_username)::int        AS "distinctCCount"
