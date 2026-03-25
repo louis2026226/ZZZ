@@ -340,28 +340,16 @@ io.on('connection', (socket) => {
     cb({ ok: true, username })
   })
 
-  socket.on('c_login', ({ username, roomId }, cb) => {
+  function handleCJoin({ username, roomId }, cb) {
     if (typeof cb !== 'function') return
     const rid = String(roomId || '').trim()
-    if (!/^\d{3}$/.test(rid)) {
-      cb({ ok: false, error: '房号须为 3 位数字' })
-      return
-    }
+    if (!/^\d{3}$/.test(rid)) { cb({ ok: false, error: '房号须为 3 位数字' }); return }
     const room = getRoom(rid)
-    if (!room) {
-      cb({ ok: false, error: '房间不存在' })
-      return
-    }
+    if (!room) { cb({ ok: false, error: '房间不存在' }); return }
     const cu = String(username || '').trim()
-    if (!cu) {
-      cb({ ok: false, error: '用户名不能为空' })
-      return
-    }
+    if (!cu) { cb({ ok: false, error: '用户名不能为空' }); return }
     for (const info of room.sockets.values()) {
-      if (info.username === cu) {
-        cb({ ok: false, error: '用户名已存在' })
-        return
-      }
+      if (info.username === cu) { cb({ ok: false, error: '用户名已存在' }); return }
     }
     bStats.get(room.adminUsername).cUsers.add(cu)
     socket.join(roomKey(room.id))
@@ -372,22 +360,11 @@ io.on('connection', (socket) => {
     broadcastRoom(room, 'messages', { list: room.messages })
     broadcastRoom(room, 'roomStats', roomStatsPayload(room))
     syncEmptyPlayerDestroyTimer(room)
-    cb({
-      ok: true,
-      room: {
-        id: room.id,
-        adminUsername: room.adminUsername,
-        totalRounds: room.totalRounds,
-        maxBet: room.maxBet,
-        betSeconds: room.betSeconds,
-        currentRound: room.currentRound,
-        messages: room.messages,
-        phase: room.phase,
-        gameEnded: room.gameEnded,
-        roomName: room.roomName || '',
-      },
-    })
-  })
+    cb({ ok: true, room: { id: room.id, adminUsername: room.adminUsername, totalRounds: room.totalRounds, maxBet: room.maxBet, betSeconds: room.betSeconds, currentRound: room.currentRound, messages: room.messages, phase: room.phase, gameEnded: room.gameEnded, roomName: room.roomName || '' } })
+  }
+
+  socket.on('c_login', handleCJoin)
+  socket.on('c_join_room', handleCJoin)
 
   socket.on('b_create_room', ({ username, totalRounds, maxBet, betSeconds, baolu, roomName }, cb) => {
     if (typeof cb !== 'function') return
