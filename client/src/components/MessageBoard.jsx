@@ -72,7 +72,7 @@ export default function MessageBoard({ messages, className = 'h-[40vh]', onRedPa
                 <button
                   type="button"
                   onClick={() => onRedPacketClick?.(m.redpacket.id)}
-                  className="flex items-center gap-2 rounded-lg bg-red-800/80 px-3 py-2 text-left hover:bg-red-700/80"
+                  className="flex items-center gap-2 rounded-lg bg-zinc-700/80 px-3 py-2 text-left hover:bg-zinc-600/80"
                 >
                   <img src="/hb1.png" alt="红包" className="max-h-10 w-auto shrink-0" />
                   <div>

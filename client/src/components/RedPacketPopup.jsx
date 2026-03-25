@@ -14,11 +14,11 @@ export default function RedPacketPopup({ rp, myUsername, onGrab, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm overflow-hidden rounded-t-2xl"
+        className="w-full max-w-sm overflow-hidden rounded-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
