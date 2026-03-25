@@ -808,7 +808,7 @@ io.on('connection', (socket) => {
       cb({ ok: true, list })
     } catch (e) {
       console.error('[db] super_admin_list_b error', e.message)
-      cb({ ok: false, error: '查询失败' })
+      cb({ ok: false, error: `查询失败: ${e.message}` })
     }
   })
 
