@@ -187,6 +187,10 @@ From `.cursor/rules/execute-first.mdc`:
   - UI / 角色权限（B端/C端显示差异）→ `.claude/rules/ui.md`
   - 部署 / 版本 / 环境变量 → `.claude/rules/deploy.md`
 
+## Progress Tracking
+
+**IMPORTANT: Before saying 'Done', you MUST append the technical debt or next steps discovered during this task to `PROGRESS.md`.**
+
 ## Claude Code Project Rules
 
 ### Critical Workflow (Test-Driven)
