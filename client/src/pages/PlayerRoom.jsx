@@ -282,7 +282,7 @@ export default function PlayerRoom() {
       return
     }
     if (pickedAmount > maxBet) {
-      setAlertText(`金额超过管理员设定的下注上限（${maxBet}）`)
+      setAlertText(`金额超过成绩上限（${maxBet}）`)
       return
     }
     confirmLockRef.current = true
@@ -317,7 +317,7 @@ export default function PlayerRoom() {
       return
     }
     if (v > maxBet) {
-      setAlertText(`金额超过管理员设定的下注上限（${maxBet}）`)
+      setAlertText(`金额超过成绩上限（${maxBet}）`)
       return
     }
     if (v % 5 !== 0) {

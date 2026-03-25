@@ -473,7 +473,7 @@ export default function AdminRoom() {
       return
     }
     if (pickedAmount > maxBetState) {
-      setBetAlert(`金额超过单注上限（${maxBetState}）`)
+      setBetAlert(`金额超过成绩上限（${maxBetState}）`)
       return
     }
     const smileOn = (numPick.smile ?? 0) > 0
@@ -507,7 +507,7 @@ export default function AdminRoom() {
       return
     }
     if (v > maxBetState) {
-      setBetAlert(`金额超过单注上限（${maxBetState}）`)
+      setBetAlert(`金额超过成绩上限（${maxBetState}）`)
       return
     }
     if (v % 5 !== 0) {
@@ -593,7 +593,7 @@ export default function AdminRoom() {
                       {r.currentRound}/{r.totalRounds} 局 · {r.playerCount} 人在线
                     </span>
                     <span className="mt-1 text-xs text-zinc-500">
-                      {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 上限 {r.maxBet}
+                      {r.gameEnded ? '已结束' : phaseLabel(r.phase)} · 成绩上限 {r.maxBet}
                     </span>
                   </button>
                 ))}
@@ -720,7 +720,7 @@ export default function AdminRoom() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-zinc-400">单注下注上限金额</label>
+                <label className="block text-sm text-zinc-400">成绩上限</label>
                 <div className="mt-2 flex items-stretch overflow-hidden rounded-lg border border-zinc-600 bg-zinc-800">
                   <button
                     type="button"
@@ -982,7 +982,7 @@ export default function AdminRoom() {
             <span className={`ml-3 text-lg font-bold ${roomTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {roomTotalPnL >= 0 ? '+' : ''}{roomTotalPnL}
             </span>
-            <div className="mt-1 text-xs text-zinc-500">V1.0.103</div>
+            <div className="mt-1 text-xs text-zinc-500">V1.0.104</div>
           </div>
         ) : null}
 
