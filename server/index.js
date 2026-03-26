@@ -454,6 +454,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', rooms: rooms.size })
 })
 
+app.get('/api/server-ports', (req, res) => {
+  res.json({ mainPort: PORT, adminPort: SUPER_ADMIN_PORT })
+})
+
 const distPath = path.join(__dirname, '..', 'client', 'dist')
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath))
