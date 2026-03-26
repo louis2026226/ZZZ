@@ -41,9 +41,25 @@ function hashPassword(pw) {
 
 function verifyPassword(pw, stored) {
   try {
-    const [salt, hash] = stored.split(':')
-    return crypto.timingSafeEqual(crypto.scryptSync(pw, salt, 64), Buffer.from(hash, 'hex'))
-  } catch {
+    const parts = stored.split(':')
+    if (parts.length !== 2) {
+      console.log('[verifyPassword] invalid format, expected salt:hash')
+      return false
+    }
+    const [salt, hash] = parts
+    if (!salt || !hash) {
+      console.log('[verifyPassword] salt or hash is empty')
+      return false
+    }
+    const computed = crypto.scryptSync(pw, salt, 64)
+    const storedBuf = Buffer.from(hash, 'hex')
+    if (computed.length !== storedBuf.length) {
+      console.log('[verifyPassword] buffer length mismatch:', computed.length, 'vs', storedBuf.length)
+      return false
+    }
+    return crypto.timingSafeEqual(computed, storedBuf)
+  } catch (e) {
+    console.error('[verifyPassword] error:', e.message)
     return false
   }
 }
@@ -465,7 +481,10 @@ io.on('connection', (socket) => {
         }
         const acc = rows[0]
         console.log('[b_login] account found:', username, 'status:', acc.status, 'authorized:', acc.authorized)
-        if (!verifyPassword(password, acc.password_hash)) {
+        console.log('[b_login] stored hash format:', acc.password_hash ? acc.password_hash.substring(0, 40) + '...' : 'empty')
+        const verifyResult = verifyPassword(password, acc.password_hash)
+        console.log('[b_login] verify result:', verifyResult)
+        if (!verifyResult) {
           console.log('[b_login] password verification failed for:', username)
           cb({ ok: false, error: '密码错误' })
           return
