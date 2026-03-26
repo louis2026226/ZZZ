@@ -13,6 +13,11 @@ export default function SuperAdmin() {
   const [createPassword, setCreatePassword] = useState('')
   const [createErr, setCreateErr] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(null) // username to delete
+  const [queryStart, setQueryStart] = useState('')
+  const [queryEnd, setQueryEnd] = useState('')
+  const [queryStats, setQueryStats] = useState(null)
+  const [queryLoading, setQueryLoading] = useState(false)
+  const [queryErr, setQueryErr] = useState('')
 
   const load = useCallback(() => {
     if (sessionStorage.getItem('superAdminOk') !== '1') {
@@ -122,6 +127,34 @@ export default function SuperAdmin() {
     nav('/super-admin', { replace: true })
   }
 
+  function doQuery() {
+    setQueryErr('')
+    setQueryStats(null)
+    if (!queryStart || !queryEnd) {
+      setQueryErr('请选择时间段')
+      return
+    }
+    setQueryLoading(true)
+    ;(async () => {
+      try {
+        const origin = await resolveMainSocketOrigin()
+        const s = createSocket(origin)
+        s.emit('super_admin_query_stats', { startTime: queryStart, endTime: queryEnd }, (res) => {
+          s.disconnect()
+          setQueryLoading(false)
+          if (!res?.ok) {
+            setQueryErr(res?.error || '查询失败')
+            return
+          }
+          setQueryStats(res.stats)
+        })
+      } catch {
+        setQueryLoading(false)
+        setQueryErr('无法连接服务')
+      }
+    })()
+  }
+
   if (sessionStorage.getItem('superAdminOk') !== '1') return null
 
   return (
@@ -155,6 +188,61 @@ export default function SuperAdmin() {
         </div>
         {loading ? <p className="text-zinc-400">加载中…</p> : null}
         {err ? <p className="mb-2 text-sm text-red-400">{err}</p> : null}
+
+        {/* 数据查询板块 */}
+        <div className="mb-6 rounded-lg border border-zinc-700 bg-zinc-900/50 p-4">
+          <h2 className="mb-3 text-lg font-semibold text-amber-400">数据查询</h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="block text-xs text-zinc-400">开始时间</label>
+              <input
+                type="datetime-local"
+                value={queryStart}
+                onChange={(e) => setQueryStart(e.target.value)}
+                className="mt-1 rounded border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-sm text-white outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-400">结束时间</label>
+              <input
+                type="datetime-local"
+                value={queryEnd}
+                onChange={(e) => setQueryEnd(e.target.value)}
+                className="mt-1 rounded border border-zinc-600 bg-zinc-800 px-3 py-1.5 text-sm text-white outline-none"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={doQuery}
+              disabled={queryLoading}
+              className="rounded-lg bg-emerald-700 px-4 py-1.5 text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
+            >
+              {queryLoading ? '查询中...' : '查询'}
+            </button>
+          </div>
+          {queryErr ? <p className="mt-2 text-sm text-red-400">{queryErr}</p> : null}
+          {queryStats ? (
+            <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="rounded-lg bg-zinc-800 p-3">
+                <div className="text-xs text-zinc-400">总建房数</div>
+                <div className="mt-1 text-2xl font-bold text-amber-400">{queryStats.totalRooms}</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800 p-3">
+                <div className="text-xs text-zinc-400">总牌局数</div>
+                <div className="mt-1 text-2xl font-bold text-emerald-400">{queryStats.totalRounds}</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800 p-3">
+                <div className="text-xs text-zinc-400">总 B 端人数</div>
+                <div className="mt-1 text-2xl font-bold text-sky-400">{queryStats.totalB}</div>
+              </div>
+              <div className="rounded-lg bg-zinc-800 p-3">
+                <div className="text-xs text-zinc-400">总 C 端人数</div>
+                <div className="mt-1 text-2xl font-bold text-purple-400">{queryStats.totalC}</div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
         <div className="overflow-x-auto rounded-lg border border-zinc-700">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-zinc-900 text-zinc-400">

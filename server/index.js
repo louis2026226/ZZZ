@@ -992,6 +992,69 @@ io.on('connection', (socket) => {
     }
   })
 
+  // ── Super admin query stats ────────────────────────────────────────────────
+  socket.on('super_admin_query_stats', async ({ startTime, endTime }, cb) => {
+    if (typeof cb !== 'function') return
+    if (!pool) {
+      cb({ ok: false, error: '数据库未连接' })
+      return
+    }
+    try {
+      const start = startTime ? new Date(startTime) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // default 30 days ago
+      const end = endTime ? new Date(endTime) : new Date()
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        cb({ ok: false, error: '时间格式错误' })
+        return
+      }
+
+      // Total rooms created in time range
+      const { rows: roomRows } = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM rooms WHERE created_at >= $1 AND created_at <= $2`,
+        [start, end]
+      )
+      const totalRooms = roomRows[0]?.count || 0
+
+      // Total rounds settled in time range
+      const { rows: roundRows } = await pool.query(
+        `SELECT COALESCE(SUM(settled_rounds), 0)::int AS total FROM rooms WHERE created_at >= $1 AND created_at <= $2`,
+        [start, end]
+      )
+      const totalRounds = roundRows[0]?.total || 0
+
+      // Total B accounts created in time range
+      const { rows: bRows } = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM b_accounts WHERE created_at >= $1 AND created_at <= $2`,
+        [start, end]
+      )
+      const totalB = bRows[0]?.count || 0
+
+      // Total distinct C users who placed bets in time range
+      const { rows: cRows } = await pool.query(
+        `SELECT COUNT(DISTINCT b.c_username)::int AS count
+         FROM bets b
+         JOIN rooms r ON b.room_id = r.id
+         WHERE r.created_at >= $1 AND r.created_at <= $2`,
+        [start, end]
+      )
+      const totalC = cRows[0]?.count || 0
+
+      cb({
+        ok: true,
+        stats: {
+          totalRooms,
+          totalRounds,
+          totalB,
+          totalC,
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+        },
+      })
+    } catch (e) {
+      console.error('[db] super_admin_query_stats error', e.message)
+      cb({ ok: false, error: '查询失败' })
+    }
+  })
+
   // ── Disconnect ────────────────────────────────────────────────────────────
   socket.on('disconnect', () => {
     const roomId = socket.data.roomId
