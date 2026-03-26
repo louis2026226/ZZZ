@@ -464,7 +464,9 @@ io.on('connection', (socket) => {
           return
         }
         const acc = rows[0]
+        console.log('[b_login] account found:', username, 'status:', acc.status, 'authorized:', acc.authorized)
         if (!verifyPassword(password, acc.password_hash)) {
+          console.log('[b_login] password verification failed for:', username)
           cb({ ok: false, error: '密码错误' })
           return
         }
@@ -476,6 +478,7 @@ io.on('connection', (socket) => {
           cb({ ok: false, error: '账号未授权' })
           return
         }
+        console.log('[b_login] login success:', username)
         cb({ ok: true, username })
       } catch (e) {
         console.error('[db] b_login error', e.message)
@@ -950,10 +953,12 @@ io.on('connection', (socket) => {
     }
     try {
       const hash = hashPassword(p)
+      console.log('[super_admin_create_b] creating account:', u, 'hash length:', hash.length)
       await pool.query(
-        'INSERT INTO b_accounts (username, password_hash) VALUES ($1,$2)',
-        [u, hash]
+        'INSERT INTO b_accounts (username, password_hash, status, authorized) VALUES ($1,$2,$3,$4)',
+        [u, hash, 'active', true]
       )
+      console.log('[super_admin_create_b] account created successfully:', u)
       cb({ ok: true })
     } catch (e) {
       if (e.code === '23505') {

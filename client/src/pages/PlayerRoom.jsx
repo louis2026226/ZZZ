@@ -289,8 +289,8 @@ export default function PlayerRoom() {
       setAlertText('请至少选择 1 个数字')
       return
     }
-    if (digits.length > 2) {
-      setAlertText('最多 2 个数字位（连点同一数字为两位）')
+    if (digits.length > 3) {
+      setAlertText('最多 3 个数字位')
       return
     }
     if (!validDigitPick(digits)) {
