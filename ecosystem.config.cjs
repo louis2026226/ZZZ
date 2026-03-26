@@ -19,7 +19,7 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000,
         ADMIN_PASSWORD: 'admin888',
-        CLIENT_ORIGIN: 'http://8.134.168.87:3000',
+        CLIENT_ORIGIN: 'http://8.134.168.87:3000,http://8.134.168.87:3390',
       },
     },
     {
