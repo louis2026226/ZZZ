@@ -506,6 +506,7 @@ io.on('connection', (socket) => {
     for (const info of room.sockets.values()) {
       if (info.username === cu) { cb({ ok: false, error: '用户名已存在' }); return }
     }
+    if (playerCount(room) >= 20) { cb({ ok: false, error: `房号${rid}人数已满` }); return }
     ensureBStats(room.adminUsername)
     bStats.get(room.adminUsername).cUsers.add(cu)
     socket.join(roomKey(room.id))

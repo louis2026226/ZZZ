@@ -1018,7 +1018,7 @@ export default function AdminRoom() {
             <span className={`ml-3 text-lg font-bold ${roomTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
               {roomTotalPnL >= 0 ? '+' : ''}{roomTotalPnL}
             </span>
-            <div className="mt-1 text-xs text-zinc-500">V1.0.111</div>
+            <div className="mt-1 text-xs text-zinc-500">V1.0.112</div>
           </div>
         ) : null}
 
