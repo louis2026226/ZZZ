@@ -4,6 +4,7 @@
 - `isHost`：`bUsername === hostUsername`，房主身份
 - B端（Admin）页面：`/b/dashboard` → `AdminRoom.jsx`
 - C端（Player）页面：`/c/play` → `PlayerRoom.jsx`（或同文件内分支渲染）
+- 超管页面：`/super-admin/panel` → `SuperAdmin.jsx`
 
 ## 房主（isHost）专属 UI
 - 显示：**开始答题** / **结束答题** 按钮（原名：上课/下课，v1.0.99 改名）
@@ -17,10 +18,21 @@
 - 显示：选号区、选积分区、确定按钮
 - 隐藏：开始答题/结束答题按钮
 
+## 超管后台功能 (v1.0.111)
+- **B端账号管理**：创建、授权/取消授权、封禁、停用、删除
+- **数据查询板块**：
+  - 时间范围选择（开始时间、结束时间）
+  - 查询结果：总建房数、总牌局数、总B端人数、总C端人数
+  - 数据源：PostgreSQL 数据库统计
+- **访问���址**：`http://服务器IP:3390`（默认端口，可通过 `SUPER_ADMIN_PORT` 环境变量修改）
+
 ## 版本号显示位置
 - `client/src/pages/BLogin.jsx` 底部
 - `client/src/pages/CLogin.jsx` 底部
+- `client/src/pages/AdminRoom.jsx` 房主成绩卡片
 
 ## 房间卡片
 - 群名称显示在大厅房间卡片上（v1.0.98）
 - 房间名显示在房号下方，浅蓝色字体（v1.0.95）
+- 玩家人数每5秒自动刷新（v1.0.110）
+
