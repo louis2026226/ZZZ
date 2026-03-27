@@ -20,12 +20,12 @@ if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev
 
 cd "$ROOT"
 if pm2 describe room-game >/dev/null 2>&1; then
-  pm2 restart room-game
+  pm2 restart room-game --update-env
 else
   pm2 start ecosystem.config.cjs --only room-game
 fi
 if pm2 describe room-game-watch >/dev/null 2>&1; then
-  pm2 restart room-game-watch
+  pm2 restart room-game-watch --update-env
 elif [ -f "$ROOT/ecosystem.config.cjs" ]; then
   pm2 start ecosystem.config.cjs --only room-game-watch 2>/dev/null || true
 fi
