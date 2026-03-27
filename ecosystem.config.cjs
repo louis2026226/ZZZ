@@ -20,6 +20,7 @@ module.exports = {
         PORT: 3000,
         ADMIN_PASSWORD: 'admin888',
         CLIENT_ORIGIN: 'http://8.134.168.87:3000,http://8.134.168.87:3390',
+        DATABASE_URL: 'postgresql://postgres:AhVTtcrUawgVqfyvZmZMxcEOGXXtSiOw@crossover.proxy.rlwy.net:47829/railway',
       },
     },
     {
